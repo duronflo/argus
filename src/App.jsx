@@ -14,6 +14,14 @@ import './App.css';
 const STORAGE_KEY = 'argus_project_data';
 const SAVE_DEBOUNCE_MS = 800;
 
+const NAV_ITEMS = [
+  { id: 'dashboard', label: '📊 Dashboard' },
+  { id: 'angebote', label: '📋 Angebote' },
+  { id: 'zeitplan', label: '📅 Zeitplan' },
+  { id: 'gewerke', label: '🔨 Gewerke' },
+  { id: 'einheiten', label: '🏠 Einheiten' },
+];
+
 // ---------------------------------------------------------------------------
 // Server persistence helpers
 // ---------------------------------------------------------------------------

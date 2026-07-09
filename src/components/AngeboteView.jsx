@@ -3,9 +3,10 @@ import Badge from './Badge';
 import { formatCurrency, formatDate } from '../utils/dateUtils';
 import { calcGesamtStats } from '../utils/calculations';
 
-export default function AngeboteView({ gewerke, angebote, onNavigate }) {
+export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterEinheit, setFilterEinheit] = useState('');
 
   const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
 
@@ -17,9 +18,12 @@ export default function AngeboteView({ gewerke, angebote, onNavigate }) {
         (a.titel || '').toLowerCase().includes(search.toLowerCase()) ||
         (gewerk?.name || '').toLowerCase().includes(search.toLowerCase());
       const matchStatus = filterStatus ? a.status === filterStatus : true;
-      return matchSearch && matchStatus;
+      const matchEinheit = filterEinheit
+        ? (gewerk?.einheitIds || []).includes(filterEinheit)
+        : true;
+      return matchSearch && matchStatus && matchEinheit;
     });
-  }, [angebote, gewerke, search, filterStatus]);
+  }, [angebote, gewerke, search, filterStatus, filterEinheit]);
 
   // Group by gewerk
   const grouped = useMemo(() => {
@@ -68,6 +72,14 @@ export default function AngeboteView({ gewerke, angebote, onNavigate }) {
           <option value="ausgewählt">Ausgewählt</option>
           <option value="abgelehnt">Abgelehnt</option>
         </select>
+        {einheiten && einheiten.length > 0 && (
+          <select className="select" value={filterEinheit} onChange={(e) => setFilterEinheit(e.target.value)}>
+            <option value="">Alle Einheiten</option>
+            {einheiten.map((eh) => (
+              <option key={eh.id} value={eh.id}>{eh.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {grouped.length === 0 ? (
@@ -75,6 +87,9 @@ export default function AngeboteView({ gewerke, angebote, onNavigate }) {
       ) : (
         grouped.map(([gewerkId, items]) => {
           const gewerk = gewerke.find((g) => g.id === gewerkId);
+          const assignedUnits = einheiten && gewerk
+            ? einheiten.filter((eh) => (gewerk.einheitIds || []).includes(eh.id))
+            : [];
           return (
             <div key={gewerkId} className="angebote-group">
               <div
@@ -84,6 +99,9 @@ export default function AngeboteView({ gewerke, angebote, onNavigate }) {
               >
                 <span className="angebote-group-name">{gewerk ? gewerk.name : 'Unbekanntes Gewerk'}</span>
                 {gewerk && <Badge status={gewerk.status} small />}
+                {assignedUnits.map((eh) => (
+                  <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
+                ))}
                 {gewerk && <span className="angebote-group-nav">→ Details</span>}
               </div>
               <div className="table-wrap">

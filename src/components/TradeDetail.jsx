@@ -7,7 +7,7 @@ import { formatDate, isOverdue } from '../utils/dateUtils';
 const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
 const KATEGORIEN = ['Elektro', 'Sanitär', 'Maler', 'Boden', 'Dach', 'Heizung', 'Fenster', 'Maurer', 'Zimmerer', 'Sonstiges'];
 
-function GewerkForm({ initial, onSave, onCancel }) {
+function GewerkForm({ initial, einheiten, onSave, onCancel }) {
   const [form, setForm] = useState(
     initial || {
       name: '',
@@ -18,11 +18,22 @@ function GewerkForm({ initial, onSave, onCancel }) {
       geplantesEnde: '',
       tatsaechlicherStart: '',
       tatsaechlichesEnde: '',
+      einheitIds: [],
     }
   );
 
   function set(field, val) {
     setForm((prev) => ({ ...prev, [field]: val }));
+  }
+
+  function toggleEinheit(id) {
+    setForm((p) => {
+      const ids = p.einheitIds || [];
+      return {
+        ...p,
+        einheitIds: ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
+      };
+    });
   }
 
   function handleSubmit(e) {
@@ -72,6 +83,26 @@ function GewerkForm({ initial, onSave, onCancel }) {
           <input className="input" type="date" value={form.tatsaechlichesEnde} onChange={(e) => set('tatsaechlichesEnde', e.target.value)} />
         </div>
       </div>
+      {einheiten && einheiten.length > 0 && (
+        <div className="form-row">
+          <label className="form-label">Einheiten (Kostenstellen)</label>
+          <div className="einheit-checkboxes">
+            {einheiten.map((eh) => (
+              <label key={eh.id} className="einheit-checkbox-item">
+                <input
+                  type="checkbox"
+                  checked={(form.einheitIds || []).includes(eh.id)}
+                  onChange={() => toggleEinheit(eh.id)}
+                />
+                <span>{eh.name}</span>
+              </label>
+            ))}
+          </div>
+          {(form.einheitIds || []).length === 0 && (
+            <span className="form-hint">Keine Zuweisung = allgemeines Gewerk (projekt-weit)</span>
+          )}
+        </div>
+      )}
       <div className="form-row">
         <label className="form-label">Notizen</label>
         <textarea className="input textarea" rows={3} value={form.notizen} onChange={(e) => set('notizen', e.target.value)} />
@@ -87,6 +118,7 @@ function GewerkForm({ initial, onSave, onCancel }) {
 export default function TradeDetail({
   gewerk,
   angebote,
+  einheiten,
   onEditGewerk,
   onAddAngebot,
   onEditAngebot,
@@ -95,12 +127,23 @@ export default function TradeDetail({
   const [showEditForm, setShowEditForm] = useState(false);
   const overdue = isOverdue(gewerk.geplantesEnde, gewerk.status);
 
+  const assignedEinheiten = einheiten
+    ? einheiten.filter((eh) => (gewerk.einheitIds || []).includes(eh.id))
+    : [];
+
   return (
     <div className="trade-detail">
       <div className="trade-detail-header">
         <div>
           <h2 className="trade-detail-title">{gewerk.name}</h2>
           <span className="trade-detail-kat">{gewerk.kategorie}</span>
+          {assignedEinheiten.length > 0 && (
+            <div className="trade-detail-units">
+              {assignedEinheiten.map((eh) => (
+                <span key={eh.id} className="einheit-tag">{eh.name}</span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="trade-detail-actions">
           <Badge status={gewerk.status} />
@@ -152,6 +195,7 @@ export default function TradeDetail({
         <Modal title="Gewerk bearbeiten" onClose={() => setShowEditForm(false)}>
           <GewerkForm
             initial={gewerk}
+            einheiten={einheiten}
             onSave={(data) => {
               onEditGewerk({ ...gewerk, ...data });
               setShowEditForm(false);

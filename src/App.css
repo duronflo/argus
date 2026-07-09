@@ -761,3 +761,271 @@ body {
   .table th, .table td { padding: 6px 7px; }
   .table th:nth-child(n+5), .table td:nth-child(n+5) { display: none; }
 }
+
+/* --- Einheit tags ----------------------------------------- */
+.einheit-tag {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.einheit-tag--sm {
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+/* --- Einheiten View --------------------------------------- */
+.einheiten-view { }
+
+.einheiten-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.einheiten-header .section-title { margin-bottom: 0; }
+
+.einheiten-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.einheit-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+
+.einheit-card--warn {
+  border-color: #fbbf24;
+  background: #fffbeb;
+}
+
+.einheit-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.einheit-card-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.einheit-card-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.einheit-card-gewerke {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.einheit-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.einheit-card-notizen {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 12px;
+}
+
+.einheit-card-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.einheit-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.einheit-stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.einheit-stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.einheit-budget-bar-wrap { margin-top: 4px; }
+
+/* --- Einheit checkboxes (form) ---------------------------- */
+.einheit-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.einheit-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  padding: 5px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.einheit-checkbox-item:has(input:checked) {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.einheit-checkbox-item input { cursor: pointer; }
+
+.form-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+/* --- Trade detail unit tags ------------------------------- */
+.trade-detail-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* --- Trade item units (list) ------------------------------ */
+.trade-item-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+/* --- Gewerk overview units (dashboard) -------------------- */
+.gewerk-overview-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+/* --- Dashboard units section ------------------------------ */
+.dashboard-units {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+
+.dashboard-units .subsection-title { margin-bottom: 14px; }
+
+.dashboard-units-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.dashboard-unit-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.dashboard-unit-card--warn {
+  border-color: #fbbf24;
+  background: #fffbeb;
+}
+
+.dashboard-unit-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.dashboard-unit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+
+.dashboard-unit-label {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dashboard-unit-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.dashboard-unit-budget {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 3px;
+  text-align: right;
+}
+
+/* --- Project header unit bars ----------------------------- */
+.project-header-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.project-header-unit {
+  flex: 1;
+  min-width: 150px;
+  max-width: 260px;
+}
+
+.project-header-unit-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.budget-bar--sm {
+  height: 4px;
+}

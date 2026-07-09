@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import AngeboteView from './components/AngeboteView';
 import TimelineView from './components/TimelineView';
 import GewerkeDetails from './components/GewerkeDetails';
+import EinheitenView from './components/EinheitenView';
 import Modal from './components/Modal';
 import './App.css';
 
@@ -17,12 +18,24 @@ const NAV_ITEMS = [
   { id: 'angebote', label: '📋 Angebote' },
   { id: 'zeitplan', label: '📅 Zeitplan' },
   { id: 'gewerke', label: '🔨 Gewerke' },
+  { id: 'einheiten', label: '🏠 Einheiten' },
 ];
 
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Migrate old data that doesn't have einheiten
+      if (!parsed.einheiten) parsed.einheiten = [];
+      // Migrate gewerke missing einheitIds
+      if (parsed.gewerke) {
+        parsed.gewerke = parsed.gewerke.map((g) =>
+          g.einheitIds ? g : { ...g, einheitIds: [] }
+        );
+      }
+      return parsed;
+    }
   } catch {
     // ignore
   }
@@ -66,7 +79,7 @@ export default function App() {
 
   const [data, setData] = useState(() => loadFromStorage() || sampleData);
 
-  const { projekt, gewerke, angebote, meilensteine } = data;
+  const { projekt, gewerke, angebote, meilensteine, einheiten } = data;
 
   // Persist to localStorage
   useEffect(() => {
@@ -125,6 +138,23 @@ export default function App() {
     updateData({ meilensteine: meilensteine.filter((m) => m.id !== id) });
   }
 
+  // --- Einheiten CRUD ---
+  function addEinheit(einheit) {
+    updateData({ einheiten: [...einheiten, einheit] });
+  }
+  function editEinheit(updated) {
+    updateData({ einheiten: einheiten.map((e) => e.id === updated.id ? updated : e) });
+  }
+  function deleteEinheit(id) {
+    updateData({
+      einheiten: einheiten.filter((e) => e.id !== id),
+      gewerke: gewerke.map((g) => ({
+        ...g,
+        einheitIds: (g.einheitIds || []).filter((eid) => eid !== id),
+      })),
+    });
+  }
+
   // --- Import/Export ---
   function handleImport(imported) {
     if (!imported.projekt || !imported.gewerke || !imported.angebote) {
@@ -136,6 +166,7 @@ export default function App() {
       gewerke: imported.gewerke,
       angebote: imported.angebote,
       meilensteine: imported.meilensteine || [],
+      einheiten: imported.einheiten || [],
     });
     setSelectedGewerkId(null);
     setActiveTab('dashboard');
@@ -148,6 +179,7 @@ export default function App() {
         gewerke: [],
         angebote: [],
         meilensteine: [],
+        einheiten: [],
       });
       setSelectedGewerkId(null);
       setActiveTab('dashboard');
@@ -163,6 +195,7 @@ export default function App() {
             gewerke={gewerke}
             angebote={angebote}
             meilensteine={meilensteine}
+            einheiten={einheiten}
             onNavigate={handleNavigate}
           />
         );
@@ -171,6 +204,7 @@ export default function App() {
           <AngeboteView
             gewerke={gewerke}
             angebote={angebote}
+            einheiten={einheiten}
             onNavigate={handleNavigate}
           />
         );
@@ -189,6 +223,7 @@ export default function App() {
           <GewerkeDetails
             gewerke={gewerke}
             angebote={angebote}
+            einheiten={einheiten}
             selectedGewerkId={selectedGewerkId}
             onSelectGewerk={setSelectedGewerkId}
             onAddGewerk={addGewerk}
@@ -197,6 +232,17 @@ export default function App() {
             onAddAngebot={addAngebot}
             onEditAngebot={editAngebot}
             onDeleteAngebot={deleteAngebot}
+          />
+        );
+      case 'einheiten':
+        return (
+          <EinheitenView
+            einheiten={einheiten}
+            gewerke={gewerke}
+            angebote={angebote}
+            onAddEinheit={addEinheit}
+            onEditEinheit={editEinheit}
+            onDeleteEinheit={deleteEinheit}
           />
         );
       default:
@@ -242,6 +288,8 @@ export default function App() {
           <ProjectHeader
             projekt={projekt}
             angebote={angebote}
+            einheiten={einheiten}
+            gewerke={gewerke}
             onEdit={() => setShowProjectForm(true)}
           />
         </header>

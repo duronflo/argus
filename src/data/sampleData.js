@@ -6,6 +6,26 @@ export const sampleData = {
     budget: 120000,
     notizen: 'Kernrenovierung Erdgeschoss und Keller. Start geplant April 2025.',
   },
+  einheiten: [
+    {
+      id: 'eh-1',
+      name: 'Erdgeschoss (EG)',
+      budget: 50000,
+      notizen: 'Wohnbereich, Küche, Bad EG',
+    },
+    {
+      id: 'eh-2',
+      name: 'Obergeschoss (OG)',
+      budget: 40000,
+      notizen: 'Schlafzimmer, Kinderzimmer',
+    },
+    {
+      id: 'eh-3',
+      name: 'Keller',
+      budget: 30000,
+      notizen: 'Technikraum, Lagerraum',
+    },
+  ],
   gewerke: [
     {
       id: 'gw-1',
@@ -17,6 +37,7 @@ export const sampleData = {
       geplantesEnde: '2025-05-15',
       tatsaechlicherStart: '2025-04-18',
       tatsaechlichesEnde: '',
+      einheitIds: ['eh-1', 'eh-2'],
     },
     {
       id: 'gw-2',
@@ -28,6 +49,7 @@ export const sampleData = {
       geplantesEnde: '2025-06-15',
       tatsaechlicherStart: '2025-05-05',
       tatsaechlichesEnde: '',
+      einheitIds: ['eh-1'],
     },
     {
       id: 'gw-3',
@@ -39,6 +61,7 @@ export const sampleData = {
       geplantesEnde: '2025-07-10',
       tatsaechlicherStart: '',
       tatsaechlichesEnde: '',
+      einheitIds: ['eh-1'],
     },
     {
       id: 'gw-4',
@@ -50,6 +73,7 @@ export const sampleData = {
       geplantesEnde: '2025-08-05',
       tatsaechlicherStart: '',
       tatsaechlichesEnde: '',
+      einheitIds: ['eh-1'],
     },
     {
       id: 'gw-5',
@@ -61,6 +85,7 @@ export const sampleData = {
       geplantesEnde: '2025-03-15',
       tatsaechlicherStart: '2025-02-03',
       tatsaechlichesEnde: '2025-03-20',
+      einheitIds: [],
     },
     {
       id: 'gw-6',
@@ -72,6 +97,7 @@ export const sampleData = {
       geplantesEnde: '2025-09-10',
       tatsaechlicherStart: '',
       tatsaechlichesEnde: '',
+      einheitIds: ['eh-3'],
     },
   ],
   angebote: [

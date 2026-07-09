@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { calcGesamtStats } from '../utils/calculations';
+import { calcGesamtStats, calcEinheitStats } from '../utils/calculations';
 import { formatCurrency, formatDate, daysUntil, isOverdue } from '../utils/dateUtils';
 import Badge from './Badge';
 
@@ -13,7 +13,7 @@ function KpiCard({ label, value, sub, warn }) {
   );
 }
 
-export default function Dashboard({ projekt, gewerke, angebote, meilensteine, onNavigate }) {
+export default function Dashboard({ projekt, gewerke, angebote, meilensteine, einheiten, onNavigate }) {
   const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
 
   const offeneAngebote = angebote.filter((a) => a.status === 'offen').length;
@@ -36,6 +36,14 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, on
     });
     return map;
   }, [gewerke]);
+
+  const einheitenStats = useMemo(() => {
+    if (!einheiten || einheiten.length === 0) return [];
+    return einheiten.map((eh) => ({
+      ...eh,
+      stats: calcEinheitStats(eh, gewerke, angebote),
+    }));
+  }, [einheiten, gewerke, angebote]);
 
   return (
     <div className="dashboard">
@@ -69,6 +77,48 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, on
         <div className="alert alert--warn">
           <strong>⚠ Verzögerte Gewerke:</strong>{' '}
           {overdueGewerke.map((g) => g.name).join(', ')} — Enddatum überschritten!
+        </div>
+      )}
+
+      {einheitenStats.length > 0 && (
+        <div className="dashboard-units">
+          <h3 className="subsection-title">Budget pro Einheit</h3>
+          <div className="dashboard-units-grid">
+            {einheitenStats.map(({ id, name, budget, stats: es }) => {
+              const pct = budget > 0 ? Math.min((es.sumBeauftragt / budget) * 100, 100) : 0;
+              const over = budget > 0 && es.sumBeauftragt > budget;
+              return (
+                <div key={id} className={`dashboard-unit-card${over ? ' dashboard-unit-card--warn' : ''}`}>
+                  <div className="dashboard-unit-name">{name}</div>
+                  <div className="dashboard-unit-row">
+                    <span className="dashboard-unit-label">Beauftragt</span>
+                    <span className={`dashboard-unit-value${over ? ' warn-text' : ''}`}>{formatCurrency(es.sumBeauftragt)}</span>
+                  </div>
+                  <div className="dashboard-unit-row">
+                    <span className="dashboard-unit-label">Bezahlt</span>
+                    <span className="dashboard-unit-value">{formatCurrency(es.sumBezahlt)}</span>
+                  </div>
+                  {budget > 0 && (
+                    <>
+                      <div className="budget-bar" style={{ marginTop: 6 }}>
+                        <div
+                          className="budget-bar-fill"
+                          style={{
+                            width: `${pct}%`,
+                            background: over ? '#dc2626' : pct > 80 ? '#d97706' : '#2563eb',
+                          }}
+                        />
+                      </div>
+                      <div className="dashboard-unit-budget">
+                        {formatCurrency(es.sumBeauftragt)} / {formatCurrency(budget)}
+                        {over && <span className="warn-text"> ⚠</span>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -113,6 +163,9 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, on
                 const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
                 const ausgewaehlt = gwAngebote.find((a) => a.status === 'ausgewählt');
                 const overdue = isOverdue(g.geplantesEnde, g.status);
+                const assignedUnits = einheiten
+                  ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
+                  : [];
                 return (
                   <div
                     key={g.id}
@@ -122,6 +175,13 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, on
                     <div className="gewerk-overview-main">
                       <span className="gewerk-overview-name">{g.name}</span>
                       <span className="gewerk-overview-kat">{g.kategorie}</span>
+                      {assignedUnits.length > 0 && (
+                        <div className="gewerk-overview-units">
+                          {assignedUnits.map((eh) => (
+                            <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="gewerk-overview-right">
                       <Badge status={g.status} small />

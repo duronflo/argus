@@ -1,10 +1,12 @@
 import { formatCurrency } from '../utils/dateUtils';
-import { calcEinheitStats } from '../utils/calculations';
+import { calcEinheitStats, calcProjectBudget, isProjectBudgetDerived } from '../utils/calculations';
 
 export default function ProjectHeader({ projekt, angebote, einheiten, gewerke, onEdit }) {
+  const effectiveBudget = calcProjectBudget(projekt, einheiten);
+  const derived = isProjectBudgetDerived(einheiten);
   const beauftragt = angebote.reduce((s, a) => s + (a.betragBeauftragt || 0), 0);
-  const budgetPct = projekt.budget > 0 ? Math.min((beauftragt / projekt.budget) * 100, 100) : 0;
-  const budgetOver = beauftragt > projekt.budget;
+  const budgetPct = effectiveBudget > 0 ? Math.min((beauftragt / effectiveBudget) * 100, 100) : 0;
+  const budgetOver = effectiveBudget > 0 && beauftragt > effectiveBudget;
 
   return (
     <div className="project-header">
@@ -15,12 +17,13 @@ export default function ProjectHeader({ projekt, angebote, einheiten, gewerke, o
         </div>
         <button className="btn btn-ghost" onClick={onEdit}>✏ Bearbeiten</button>
       </div>
-      {projekt.budget > 0 && (
+      {effectiveBudget > 0 && (
         <div className="budget-bar-wrap">
           <div className="budget-bar-labels">
             <span>Beauftragt: {formatCurrency(beauftragt)}</span>
             <span style={{ color: budgetOver ? '#dc2626' : undefined }}>
-              Budget: {formatCurrency(projekt.budget)}
+              Budget: {formatCurrency(effectiveBudget)}
+              {derived && <span className="budget-derived-hint"> (aus Einheiten)</span>}
               {budgetOver && ' ⚠ Überschritten!'}
             </span>
           </div>

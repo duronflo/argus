@@ -1,0 +1,28 @@
+services:
+  argus:
+    image: ghcr.io/duronflo/argus:latest
+    container_name: argus
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist the SQLite database across container restarts and updates
+      - argus-data:/app/server
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    labels:
+      # Watchtower uses this label to identify containers it should manage
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # Poll every 5 minutes for new image digests
+    command: --interval 300 --label-enable
+    restart: unless-stopped
+
+volumes:
+  argus-data:

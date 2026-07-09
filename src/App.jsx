@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { sampleData } from './data/sampleData';
 import { generateId } from './utils/dateUtils';
 import ProjectHeader from './components/ProjectHeader';
@@ -12,23 +12,32 @@ import Modal from './components/Modal';
 import './App.css';
 
 const STORAGE_KEY = 'argus_project_data';
+const SAVE_DEBOUNCE_MS = 800;
 
-const NAV_ITEMS = [
-  { id: 'dashboard', label: '📊 Dashboard' },
-  { id: 'angebote', label: '📋 Angebote' },
-  { id: 'zeitplan', label: '📅 Zeitplan' },
-  { id: 'gewerke', label: '🔨 Gewerke' },
-  { id: 'einheiten', label: '🏠 Einheiten' },
-];
+// ---------------------------------------------------------------------------
+// Server persistence helpers
+// ---------------------------------------------------------------------------
+async function fetchProjectFromServer() {
+  const res = await fetch('/api/project');
+  if (!res.ok) return null;
+  return res.json();
+}
 
-function loadFromStorage() {
+async function saveProjectToServer(data) {
+  await fetch('/api/project', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+// localStorage is kept only as an offline fallback / cache
+function loadFromLocalStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Migrate old data that doesn't have einheiten
       if (!parsed.einheiten) parsed.einheiten = [];
-      // Migrate gewerke missing einheitIds
       if (parsed.gewerke) {
         parsed.gewerke = parsed.gewerke.map((g) =>
           g.einheitIds ? g : { ...g, einheitIds: [] }
@@ -42,9 +51,21 @@ function loadFromStorage() {
   return null;
 }
 
-function ProjektForm({ initial, onSave, onCancel }) {
+function migrateData(parsed) {
+  if (!parsed) return parsed;
+  if (!parsed.einheiten) parsed.einheiten = [];
+  if (parsed.gewerke) {
+    parsed.gewerke = parsed.gewerke.map((g) =>
+      g.einheitIds ? g : { ...g, einheitIds: [] }
+    );
+  }
+  return parsed;
+}
+
+function ProjektForm({ initial, einheiten = [], onSave, onCancel }) {
   const [form, setForm] = useState(initial || { name: '', adresse: '', budget: '', notizen: '' });
   function set(f, v) { setForm((p) => ({ ...p, [f]: v })); }
+  const hasDerivedBudget = einheiten.some((e) => (e.budget || 0) > 0);
   return (
     <form className="form" onSubmit={(e) => { e.preventDefault(); onSave({ ...form, budget: parseFloat(form.budget) || 0 }); }}>
       <div className="form-row">
@@ -56,8 +77,23 @@ function ProjektForm({ initial, onSave, onCancel }) {
         <input className="input" value={form.adresse} onChange={(e) => set('adresse', e.target.value)} />
       </div>
       <div className="form-row">
-        <label className="form-label">Budget (€)</label>
-        <input className="input" type="number" step="100" min="0" value={form.budget} onChange={(e) => set('budget', e.target.value)} />
+        <label className="form-label">
+          Budget (€)
+          {hasDerivedBudget && (
+            <span className="budget-derived-hint" title="Das Gesamtbudget wird aus den Einheiten-Budgets abgeleitet. Dieses Feld dient als Fallback.">
+              {' '}– wird aus Einheiten abgeleitet
+            </span>
+          )}
+        </label>
+        <input
+          className="input"
+          type="number"
+          step="100"
+          min="0"
+          value={form.budget}
+          onChange={(e) => set('budget', e.target.value)}
+          placeholder={hasDerivedBudget ? 'Fallback (optional)' : ''}
+        />
       </div>
       <div className="form-row">
         <label className="form-label">Notizen</label>
@@ -76,19 +112,42 @@ export default function App() {
   const [selectedGewerkId, setSelectedGewerkId] = useState(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const [data, setData] = useState(() => loadFromStorage() || sampleData);
+  // Start with localStorage cache for instant render; server data overwrites it
+  const [data, setData] = useState(() => loadFromLocalStorage() || sampleData);
 
   const { projekt, gewerke, angebote, meilensteine, einheiten } = data;
 
-  // Persist to localStorage
+  // On mount: fetch from server, fall back to localStorage/sampleData
   useEffect(() => {
+    fetchProjectFromServer()
+      .then((serverData) => {
+        if (serverData) {
+          setData(migrateData(serverData));
+        }
+      })
+      .catch(() => {/* server unreachable – keep local data */})
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Debounced server save + localStorage mirror
+  const saveTimer = useRef(null);
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (loading) return; // don't save during initial load
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       // ignore quota errors
     }
-  }, [data]);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveProjectToServer(data).catch(() => {/* ignore save errors silently */});
+    }, SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(saveTimer.current);
+  }, [data, loading]);
 
   function updateData(partial) {
     setData((prev) => ({ ...prev, ...partial }));
@@ -294,7 +353,13 @@ export default function App() {
           />
         </header>
         <main className="content">
-          {renderContent()}
+          {loading && (
+            <div className="loading-overlay">
+              <span className="loading-spinner" />
+              <span>Daten werden geladen…</span>
+            </div>
+          )}
+          {!loading && renderContent()}
         </main>
       </div>
 
@@ -302,6 +367,7 @@ export default function App() {
         <Modal title="Projekt bearbeiten" onClose={() => setShowProjectForm(false)}>
           <ProjektForm
             initial={projekt}
+            einheiten={einheiten}
             onSave={(updated) => {
               updateData({ projekt: { ...projekt, ...updated } });
               setShowProjectForm(false);

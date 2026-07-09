@@ -1,11 +1,20 @@
 import { useRef } from 'react';
 import { exportJSON, importJSON } from '../utils/importExport';
+import { exportExcel } from '../utils/exportExcel';
 
 export default function ImportExportBar({ projectData, onImport }) {
   const fileRef = useRef(null);
 
   function handleExport() {
     exportJSON(projectData, `argus-export-${new Date().toISOString().slice(0, 10)}.json`);
+  }
+
+  async function handleExcelExport() {
+    try {
+      await exportExcel(projectData, `argus-export-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (err) {
+      alert('Excel-Export fehlgeschlagen: ' + err.message);
+    }
   }
 
   async function handleFileChange(e) {
@@ -24,6 +33,9 @@ export default function ImportExportBar({ projectData, onImport }) {
     <div className="import-export-bar">
       <button className="btn btn-secondary" onClick={handleExport}>
         ⬇ Export JSON
+      </button>
+      <button className="btn btn-secondary" onClick={handleExcelExport}>
+        📊 Export Excel
       </button>
       <button className="btn btn-secondary" onClick={() => fileRef.current.click()}>
         ⬆ Import JSON

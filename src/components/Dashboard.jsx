@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { calcGesamtStats, calcEinheitStats } from '../utils/calculations';
+import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived } from '../utils/calculations';
 import { formatCurrency, formatDate, daysUntil, isOverdue } from '../utils/dateUtils';
 import Badge from './Badge';
 
@@ -15,6 +15,8 @@ function KpiCard({ label, value, sub, warn }) {
 
 export default function Dashboard({ projekt, gewerke, angebote, meilensteine, einheiten, onNavigate }) {
   const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
+  const effectiveBudget = useMemo(() => calcProjectBudget(projekt, einheiten), [projekt, einheiten]);
+  const budgetDerived = useMemo(() => isProjectBudgetDerived(einheiten), [einheiten]);
 
   const offeneAngebote = angebote.filter((a) => a.status === 'offen').length;
   const gewerkCount = gewerke.length;
@@ -63,8 +65,8 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, ei
         <KpiCard
           label="Beauftragt"
           value={formatCurrency(stats.sumBeauftragt)}
-          sub={projekt.budget > 0 ? `von ${formatCurrency(projekt.budget)} Budget` : undefined}
-          warn={projekt.budget > 0 && stats.sumBeauftragt > projekt.budget}
+          sub={effectiveBudget > 0 ? `von ${formatCurrency(effectiveBudget)} Budget${budgetDerived ? ' (aus Einheiten)' : ''}` : undefined}
+          warn={effectiveBudget > 0 && stats.sumBeauftragt > effectiveBudget}
         />
         <KpiCard
           label="Bezahlt"

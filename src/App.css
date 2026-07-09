@@ -1029,3 +1029,36 @@ body {
 .budget-bar--sm {
   height: 4px;
 }
+
+/* Loading state */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.budget-derived-hint {
+  font-size: 11px;
+  color: #6b7280;
+  font-style: italic;
+  margin-left: 4px;
+}

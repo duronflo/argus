@@ -51,3 +51,21 @@ export function calcEinheitStats(einheit, gewerke, angebote) {
     sumOffen: totalBeauftragt - totalBezahlt,
   };
 }
+
+/**
+ * Returns the effective project budget.
+ * When units (Einheiten) with budgets exist, the project budget is derived as
+ * the sum of all unit budgets. This makes it easier to manage budgets per unit.
+ * Falls back to the manually entered projekt.budget when no unit budgets are set.
+ */
+export function calcProjectBudget(projekt, einheiten = []) {
+  const unitBudgetSum = einheiten.reduce((s, e) => s + (e.budget || 0), 0);
+  return unitBudgetSum > 0 ? unitBudgetSum : (projekt.budget || 0);
+}
+
+/**
+ * Returns true if the project budget is derived from unit budgets.
+ */
+export function isProjectBudgetDerived(einheiten = []) {
+  return einheiten.some((e) => (e.budget || 0) > 0);
+}

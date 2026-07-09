@@ -1,0 +1,30 @@
+# ── Stage 1: Build the React frontend ────────────────────────────────────────
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# ── Stage 2: Production image ─────────────────────────────────────────────────
+FROM node:20-alpine AS serve
+
+WORKDIR /app
+
+# Copy only production dependencies manifest then install them
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy built frontend and server source
+COPY --from=build /app/dist ./dist
+COPY server ./server
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+EXPOSE 3000
+
+CMD ["node", "server/index.js"]

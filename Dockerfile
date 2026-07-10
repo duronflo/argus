@@ -9,14 +9,24 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# ── Stage 2: Production image ─────────────────────────────────────────────────
+# ── Stage 2: Install production dependencies (compiles native addons) ─────────
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# python3, make and g++ are required by node-gyp to compile better-sqlite3
+RUN apk add --no-cache python3 make g++
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# ── Stage 3: Production image ─────────────────────────────────────────────────
 FROM node:20-alpine AS serve
 
 WORKDIR /app
 
-# Copy only production dependencies manifest then install them
-COPY package*.json ./
-RUN npm ci --omit=dev
+# Copy pre-compiled production node_modules (includes better-sqlite3 binary)
+COPY --from=deps /app/node_modules ./node_modules
 
 # Copy built frontend and server source
 COPY --from=build /app/dist ./dist

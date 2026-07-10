@@ -5,13 +5,12 @@ import Modal from './Modal';
 import { generateId } from '../utils/dateUtils';
 
 const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
-const KATEGORIEN = ['Elektro', 'Sanitär', 'Maler', 'Boden', 'Dach', 'Heizung', 'Fenster', 'Maurer', 'Zimmerer', 'Sonstiges'];
 
-function GewerkForm({ initial, einheiten, onSave, onCancel }) {
+function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
   const [form, setForm] = useState(
     initial || {
       name: '',
-      kategorie: 'Sonstiges',
+      kategorie: kategorien[0] || 'Sonstiges',
       status: 'offen',
       notizen: '',
       geplanterStart: '',
@@ -19,6 +18,7 @@ function GewerkForm({ initial, einheiten, onSave, onCancel }) {
       tatsaechlicherStart: '',
       tatsaechlichesEnde: '',
       einheitIds: [],
+      einheitAnteile: {},
     }
   );
   function set(f, v) { setForm((p) => ({ ...p, [f]: v })); }
@@ -26,10 +26,13 @@ function GewerkForm({ initial, einheiten, onSave, onCancel }) {
   function toggleEinheit(id) {
     setForm((p) => {
       const ids = p.einheitIds || [];
-      return {
-        ...p,
-        einheitIds: ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
-      };
+      const newIds = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+      const pct = newIds.length > 0 ? Math.round(100 / newIds.length) : 0;
+      const anteile = {};
+      newIds.forEach((eid, i) => {
+        anteile[eid] = i === newIds.length - 1 ? 100 - pct * (newIds.length - 1) : pct;
+      });
+      return { ...p, einheitIds: newIds, einheitAnteile: anteile };
     });
   }
 
@@ -43,7 +46,7 @@ function GewerkForm({ initial, einheiten, onSave, onCancel }) {
         <div className="form-row">
           <label className="form-label">Kategorie</label>
           <select className="select" value={form.kategorie} onChange={(e) => set('kategorie', e.target.value)}>
-            {KATEGORIEN.map((k) => <option key={k} value={k}>{k}</option>)}
+            {kategorien.map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
         </div>
         <div className="form-row">
@@ -109,6 +112,7 @@ export default function GewerkeDetails({
   gewerke,
   angebote,
   einheiten,
+  kategorien,
   selectedGewerkId,
   onSelectGewerk,
   onAddGewerk,
@@ -123,6 +127,8 @@ export default function GewerkeDetails({
 
   const selectedGewerk = gewerke.find((g) => g.id === selectedGewerkId) || null;
   const selectedAngebote = angebote.filter((a) => a.gewerkId === selectedGewerkId);
+
+  const kats = kategorien && kategorien.length > 0 ? kategorien : ['Sonstiges'];
 
   function handleAddGewerk(data) {
     onAddGewerk({ ...data, id: generateId('gw') });
@@ -158,6 +164,7 @@ export default function GewerkeDetails({
               gewerk={selectedGewerk}
               angebote={selectedAngebote}
               einheiten={einheiten}
+              kategorien={kats}
               onEditGewerk={onEditGewerk}
               onAddAngebot={(data) => onAddAngebot({ ...data, id: generateId('ao'), gewerkId: selectedGewerkId })}
               onEditAngebot={onEditAngebot}
@@ -176,6 +183,7 @@ export default function GewerkeDetails({
         <Modal title="Neues Gewerk" onClose={() => setShowAddForm(false)}>
           <GewerkForm
             einheiten={einheiten}
+            kategorien={kats}
             onSave={handleAddGewerk}
             onCancel={() => setShowAddForm(false)}
           />

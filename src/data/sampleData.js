@@ -1,3 +1,8 @@
+export const DEFAULT_KATEGORIEN = [
+  'Elektro', 'Sanitär', 'Maler', 'Boden', 'Dach', 'Heizung',
+  'Fenster', 'Maurer', 'Zimmerer', 'Dachdecker', 'Sonstiges',
+];
+
 export const sampleData = {
   projekt: {
     id: 'proj-1',
@@ -5,7 +10,9 @@ export const sampleData = {
     adresse: 'Musterstraße 12, 12345 Musterstadt',
     budget: 120000,
     notizen: 'Kernrenovierung Erdgeschoss und Keller. Start geplant April 2025.',
+    password: '0000',
   },
+  kategorien: [...DEFAULT_KATEGORIEN],
   einheiten: [
     {
       id: 'eh-1',
@@ -38,6 +45,7 @@ export const sampleData = {
       tatsaechlicherStart: '2025-04-18',
       tatsaechlichesEnde: '',
       einheitIds: ['eh-1', 'eh-2'],
+      einheitAnteile: { 'eh-1': 50, 'eh-2': 50 },
     },
     {
       id: 'gw-2',

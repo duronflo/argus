@@ -2,7 +2,26 @@
 
 Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten, Kosten und Zeitplanung für private Bauherren.
 
+## Screenshots
+
+### Dashboard – Projektübersicht & KPIs
+> Das Dashboard zeigt auf einen Blick: Gesamtbudget, beauftragte und bezahlte Kosten, offene Angebote sowie bevorstehende Meilensteine und Gewerke-Status.
+
+### Zeitplan – Visueller Gantt-Chart
+> Der Zeitplan visualisiert alle Gewerke als Gantt-Balken, gruppiert nach Gewerk-Kategorie. Meilensteine werden als Rauten eingeblendet. Geplant vs. tatsächlich wird farblich unterschieden.
+
+### Gewerke – Kostenverteilung auf Einheiten
+> Pro Gewerk lässt sich die Kostenaufteilung auf die zugewiesenen Einheiten per Schieberegler oder Textfeld in % festlegen. Initial wird gleichmäßig verteilt.
+
+### Passwortschutz
+> Beim ersten Aufruf erscheint ein Passwort-Screen (Initial: `0000`). Das Cookie bleibt 100 Tage gültig und kann jederzeit über „Projekt bearbeiten" geändert werden.
+
 ## Features
+
+- **Passwortschutz** – Cookie-basiert (100 Tage gültig), Initial-Passwort `0000`, änderbar über „Projekt bearbeiten"
+- **Erweiterbare Kategorien** – Kategorien (Dachdecker, Elektro, …) im Projekt-Dialog verwaltbar (hinzufügen / entfernen)
+- **Zeitplan (Gantt-Chart)** – Visueller Gantt sortiert nach Gewerk-Kategorie, Geplant vs. Tatsächlich, Meilensteine als Rauten; plus klassische Listenansicht
+- **Kostenverteilung je Einheit** – Pro Gewerk Aufteilung auf Einheiten per Schieberegler + Textbox (%), initial gleichmäßig
 
 - **Dashboard** mit KPI-Karten (Gewerke, Angebote, Beauftragt, Bezahlt) und Übersicht der nächsten Termine
 - **Angebote** – Alle Angebote nach Gewerk gruppiert, filterbar nach Status oder Anbieter/Titel

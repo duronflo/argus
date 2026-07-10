@@ -5,13 +5,12 @@ import Modal from './Modal';
 import { formatDate, isOverdue } from '../utils/dateUtils';
 
 const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
-const KATEGORIEN = ['Elektro', 'Sanitär', 'Maler', 'Boden', 'Dach', 'Heizung', 'Fenster', 'Maurer', 'Zimmerer', 'Sonstiges'];
 
-function GewerkForm({ initial, einheiten, onSave, onCancel }) {
+function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
   const [form, setForm] = useState(
     initial || {
       name: '',
-      kategorie: 'Sonstiges',
+      kategorie: (kategorien && kategorien[0]) || 'Sonstiges',
       status: 'offen',
       notizen: '',
       geplanterStart: '',
@@ -19,6 +18,7 @@ function GewerkForm({ initial, einheiten, onSave, onCancel }) {
       tatsaechlicherStart: '',
       tatsaechlichesEnde: '',
       einheitIds: [],
+      einheitAnteile: {},
     }
   );
 
@@ -29,20 +29,20 @@ function GewerkForm({ initial, einheiten, onSave, onCancel }) {
   function toggleEinheit(id) {
     setForm((p) => {
       const ids = p.einheitIds || [];
-      return {
-        ...p,
-        einheitIds: ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
-      };
+      const newIds = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+      const pct = newIds.length > 0 ? Math.round(100 / newIds.length) : 0;
+      const anteile = {};
+      newIds.forEach((eid, i) => {
+        anteile[eid] = i === newIds.length - 1 ? 100 - pct * (newIds.length - 1) : pct;
+      });
+      return { ...p, einheitIds: newIds, einheitAnteile: anteile };
     });
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    onSave(form);
-  }
+  const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
 
   return (
-    <form className="form" onSubmit={handleSubmit}>
+    <form className="form" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
       <div className="form-row">
         <label className="form-label">Name *</label>
         <input className="input" required value={form.name} onChange={(e) => set('name', e.target.value)} />
@@ -51,7 +51,7 @@ function GewerkForm({ initial, einheiten, onSave, onCancel }) {
         <div className="form-row">
           <label className="form-label">Kategorie</label>
           <select className="select" value={form.kategorie} onChange={(e) => set('kategorie', e.target.value)}>
-            {KATEGORIEN.map((k) => <option key={k} value={k}>{k}</option>)}
+            {kats.map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
         </div>
         <div className="form-row">
@@ -115,10 +115,97 @@ function GewerkForm({ initial, einheiten, onSave, onCancel }) {
   );
 }
 
+function EinheitAnteileEditor({ gewerk, einheiten, onUpdate }) {
+  const ids = gewerk.einheitIds || [];
+  const anteile = gewerk.einheitAnteile || {};
+
+  if (ids.length === 0) return null;
+
+  const assignedEinheiten = einheiten.filter((eh) => ids.includes(eh.id));
+
+  function handleSliderChange(id, val) {
+    const newVal = Math.max(0, Math.min(100, Number(val)));
+    const rest = ids.filter((x) => x !== id);
+    const oldSum = rest.reduce((s, x) => s + (anteile[x] || 0), 0);
+    const newSum = 100 - newVal;
+    const newAnteile = { ...anteile, [id]: newVal };
+    if (oldSum > 0) {
+      rest.forEach((x, i) => {
+        const share = i === rest.length - 1
+          ? newSum - rest.slice(0, -1).reduce((s, y) => s + newAnteile[y], 0)
+          : Math.round(((anteile[x] || 0) / oldSum) * newSum);
+        newAnteile[x] = Math.max(0, share);
+      });
+    } else if (rest.length > 0) {
+      const perItem = Math.round(newSum / rest.length);
+      rest.forEach((x, i) => {
+        newAnteile[x] = i === rest.length - 1
+          ? newSum - perItem * (rest.length - 1)
+          : perItem;
+      });
+    }
+    onUpdate({ ...gewerk, einheitAnteile: newAnteile });
+  }
+
+  function handleTextChange(id, raw) {
+    const val = parseInt(raw, 10);
+    if (!isNaN(val)) handleSliderChange(id, val);
+  }
+
+  function resetEqual() {
+    const pct = Math.round(100 / ids.length);
+    const newAnteile = {};
+    ids.forEach((id, i) => {
+      newAnteile[id] = i === ids.length - 1 ? 100 - pct * (ids.length - 1) : pct;
+    });
+    onUpdate({ ...gewerk, einheitAnteile: newAnteile });
+  }
+
+  const total = ids.reduce((s, id) => s + (anteile[id] || 0), 0);
+
+  return (
+    <div className="anteile-editor">
+      <div className="anteile-header">
+        <span className="meta-label">Kostenverteilung auf Einheiten</span>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={resetEqual}>⟳ Gleich verteilen</button>
+      </div>
+      {assignedEinheiten.map((eh) => {
+        const val = anteile[eh.id] ?? 0;
+        return (
+          <div key={eh.id} className="anteile-row">
+            <span className="anteile-name">{eh.name}</span>
+            <input
+              type="range"
+              className="anteile-slider"
+              min={0}
+              max={100}
+              value={val}
+              onChange={(e) => handleSliderChange(eh.id, e.target.value)}
+            />
+            <input
+              type="number"
+              className="input anteile-input"
+              min={0}
+              max={100}
+              value={val}
+              onChange={(e) => handleTextChange(eh.id, e.target.value)}
+            />
+            <span className="anteile-pct">%</span>
+          </div>
+        );
+      })}
+      {total !== 100 && (
+        <p className="anteile-warn">Summe: {total}% (sollte 100% ergeben)</p>
+      )}
+    </div>
+  );
+}
+
 export default function TradeDetail({
   gewerk,
   angebote,
   einheiten,
+  kategorien,
   onEditGewerk,
   onAddAngebot,
   onEditAngebot,
@@ -130,6 +217,8 @@ export default function TradeDetail({
   const assignedEinheiten = einheiten
     ? einheiten.filter((eh) => (gewerk.einheitIds || []).includes(eh.id))
     : [];
+
+  const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
 
   return (
     <div className="trade-detail">
@@ -184,6 +273,14 @@ export default function TradeDetail({
         )}
       </div>
 
+      {assignedEinheiten.length > 0 && (
+        <EinheitAnteileEditor
+          gewerk={gewerk}
+          einheiten={einheiten}
+          onUpdate={onEditGewerk}
+        />
+      )}
+
       <OfferTable
         angebote={angebote}
         onAddAngebot={onAddAngebot}
@@ -196,6 +293,7 @@ export default function TradeDetail({
           <GewerkForm
             initial={gewerk}
             einheiten={einheiten}
+            kategorien={kats}
             onSave={(data) => {
               onEditGewerk({ ...gewerk, ...data });
               setShowEditForm(false);

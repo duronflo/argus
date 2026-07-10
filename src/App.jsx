@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { sampleData } from './data/sampleData';
+import { sampleData, DEFAULT_KATEGORIEN } from './data/sampleData';
 import { generateId } from './utils/dateUtils';
 import ProjectHeader from './components/ProjectHeader';
 import ImportExportBar from './components/ImportExportBar';
@@ -9,6 +9,8 @@ import TimelineView from './components/TimelineView';
 import GewerkeDetails from './components/GewerkeDetails';
 import EinheitenView from './components/EinheitenView';
 import Modal from './components/Modal';
+import PasswordGate, { ArgusLogoSvg } from './components/PasswordGate';
+import { isAuthenticated, authenticate } from './utils/auth';
 import './App.css';
 
 const STORAGE_KEY = 'argus_project_data';
@@ -45,13 +47,7 @@ function loadFromLocalStorage() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (!parsed.einheiten) parsed.einheiten = [];
-      if (parsed.gewerke) {
-        parsed.gewerke = parsed.gewerke.map((g) =>
-          g.einheitIds ? g : { ...g, einheitIds: [] }
-        );
-      }
-      return parsed;
+      return migrateData(parsed);
     }
   } catch {
     // ignore
@@ -62,20 +58,47 @@ function loadFromLocalStorage() {
 function migrateData(parsed) {
   if (!parsed) return parsed;
   if (!parsed.einheiten) parsed.einheiten = [];
+  if (!parsed.kategorien) parsed.kategorien = [...DEFAULT_KATEGORIEN];
+  if (!parsed.projekt.password) parsed.projekt = { ...parsed.projekt, password: '0000' };
   if (parsed.gewerke) {
-    parsed.gewerke = parsed.gewerke.map((g) =>
-      g.einheitIds ? g : { ...g, einheitIds: [] }
-    );
+    parsed.gewerke = parsed.gewerke.map((g) => {
+      const g2 = g.einheitIds ? g : { ...g, einheitIds: [] };
+      if (!g2.einheitAnteile) {
+        const ids = g2.einheitIds || [];
+        const pct = ids.length > 0 ? Math.round(100 / ids.length) : 0;
+        const anteile = {};
+        ids.forEach((id, i) => {
+          anteile[id] = i === ids.length - 1 ? 100 - pct * (ids.length - 1) : pct;
+        });
+        return { ...g2, einheitAnteile: anteile };
+      }
+      return g2;
+    });
   }
   return parsed;
 }
 
-function ProjektForm({ initial, einheiten = [], onSave, onCancel }) {
-  const [form, setForm] = useState(initial || { name: '', adresse: '', budget: '', notizen: '' });
+function ProjektForm({ initial, einheiten = [], kategorien = [], onSave, onCancel }) {
+  const [form, setForm] = useState(initial || { name: '', adresse: '', budget: '', notizen: '', password: '0000' });
+  const [kats, setKats] = useState(kategorien);
+  const [newKat, setNewKat] = useState('');
   function set(f, v) { setForm((p) => ({ ...p, [f]: v })); }
   const hasDerivedBudget = einheiten.some((e) => (e.budget || 0) > 0);
+
+  function addKat() {
+    const trimmed = newKat.trim();
+    if (trimmed && !kats.includes(trimmed)) {
+      setKats((k) => [...k, trimmed]);
+    }
+    setNewKat('');
+  }
+
+  function removeKat(k) {
+    setKats((prev) => prev.filter((x) => x !== k));
+  }
+
   return (
-    <form className="form" onSubmit={(e) => { e.preventDefault(); onSave({ ...form, budget: parseFloat(form.budget) || 0 }); }}>
+    <form className="form" onSubmit={(e) => { e.preventDefault(); onSave({ ...form, budget: parseFloat(form.budget) || 0 }, kats); }}>
       <div className="form-row">
         <label className="form-label">Projektname *</label>
         <input className="input" required value={form.name} onChange={(e) => set('name', e.target.value)} />
@@ -107,6 +130,32 @@ function ProjektForm({ initial, einheiten = [], onSave, onCancel }) {
         <label className="form-label">Notizen</label>
         <textarea className="input textarea" rows={3} value={form.notizen} onChange={(e) => set('notizen', e.target.value)} />
       </div>
+      <div className="form-row">
+        <label className="form-label">Passwort</label>
+        <input className="input" type="text" value={form.password || ''} onChange={(e) => set('password', e.target.value)} placeholder="Passwort (leer = kein Schutz)" />
+        <span className="form-hint">Ändert das Passwort für den Zugriffsschutz. Aktuelles Cookie bleibt bis zum nächsten Login gültig.</span>
+      </div>
+      <div className="form-row">
+        <label className="form-label">Kategorien (Gewerke)</label>
+        <div className="kat-list">
+          {kats.map((k) => (
+            <span key={k} className="kat-tag">
+              {k}
+              <button type="button" className="kat-tag-remove" onClick={() => removeKat(k)} title="Entfernen">×</button>
+            </span>
+          ))}
+        </div>
+        <div className="kat-add-row">
+          <input
+            className="input"
+            value={newKat}
+            onChange={(e) => setNewKat(e.target.value)}
+            placeholder="Neue Kategorie…"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKat(); } }}
+          />
+          <button type="button" className="btn btn-secondary btn-sm" onClick={addKat}>+ Hinzufügen</button>
+        </div>
+      </div>
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Abbrechen</button>
         <button type="submit" className="btn btn-primary">Speichern</button>
@@ -121,11 +170,20 @@ export default function App() {
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [unlocked, setUnlocked] = useState(false);
 
   // Start with localStorage cache for instant render; server data overwrites it
   const [data, setData] = useState(() => loadFromLocalStorage() || sampleData);
 
-  const { projekt, gewerke, angebote, meilensteine, einheiten } = data;
+  const { projekt, gewerke, angebote, meilensteine, einheiten, kategorien } = data;
+
+  // Check cookie auth after data is loaded
+  useEffect(() => {
+    if (!loading) {
+      const pw = data.projekt?.password || '0000';
+      setUnlocked(!pw || isAuthenticated(pw));
+    }
+  }, [loading, data.projekt?.password]);
 
   // On mount: fetch from server, fall back to localStorage/sampleData
   useEffect(() => {
@@ -222,19 +280,19 @@ export default function App() {
     });
   }
 
-  // --- Import/Export ---
   function handleImport(imported) {
     if (!imported.projekt || !imported.gewerke || !imported.angebote) {
       alert('Ungültiges Format: Felder "projekt", "gewerke" und "angebote" werden erwartet.');
       return;
     }
-    setData({
+    setData(migrateData({
       projekt: imported.projekt,
       gewerke: imported.gewerke,
       angebote: imported.angebote,
       meilensteine: imported.meilensteine || [],
       einheiten: imported.einheiten || [],
-    });
+      kategorien: imported.kategorien || [...DEFAULT_KATEGORIEN],
+    }));
     setSelectedGewerkId(null);
     setActiveTab('dashboard');
   }
@@ -242,11 +300,12 @@ export default function App() {
   function handleNewProject() {
     if (window.confirm('Neues Projekt anlegen? Alle nicht gespeicherten Daten gehen verloren (Export vorher empfohlen).')) {
       setData({
-        projekt: { id: generateId('proj'), name: 'Neues Projekt', adresse: '', budget: 0, notizen: '' },
+        projekt: { id: generateId('proj'), name: 'Neues Projekt', adresse: '', budget: 0, notizen: '', password: '0000' },
         gewerke: [],
         angebote: [],
         meilensteine: [],
         einheiten: [],
+        kategorien: [...DEFAULT_KATEGORIEN],
       });
       setSelectedGewerkId(null);
       setActiveTab('dashboard');
@@ -291,6 +350,7 @@ export default function App() {
             gewerke={gewerke}
             angebote={angebote}
             einheiten={einheiten}
+            kategorien={kategorien || []}
             selectedGewerkId={selectedGewerkId}
             onSelectGewerk={setSelectedGewerkId}
             onAddGewerk={addGewerk}
@@ -317,12 +377,22 @@ export default function App() {
     }
   }
 
+  const currentPw = (projekt && projekt.password) || '0000';
+  if (!loading && !unlocked) {
+    return (
+      <PasswordGate
+        value={currentPw}
+        onUnlock={() => setUnlocked(true)}
+      />
+    );
+  }
+
   return (
     <div className="app-layout">
       {/* Sidebar */}
       <aside className={`sidebar${mobileNavOpen ? ' sidebar--open' : ''}`}>
         <div className="sidebar-logo">
-          <span className="logo-icon">🏗</span>
+          <ArgusLogoSvg size={28} />
           <span className="logo-text">Argus</span>
           <button className="sidebar-close" onClick={() => setMobileNavOpen(false)}>✕</button>
         </div>
@@ -376,8 +446,11 @@ export default function App() {
           <ProjektForm
             initial={projekt}
             einheiten={einheiten}
-            onSave={(updated) => {
-              updateData({ projekt: { ...projekt, ...updated } });
+            kategorien={kategorien || []}
+            onSave={(updated, updatedKats) => {
+              updateData({ projekt: { ...projekt, ...updated }, kategorien: updatedKats });
+              // Update auth cookie if password changed
+              if (updated.password) authenticate(updated.password);
               setShowProjectForm(false);
             }}
             onCancel={() => setShowProjectForm(false)}

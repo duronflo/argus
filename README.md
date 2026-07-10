@@ -92,3 +92,33 @@ docker compose up -d
 ```bash
 docker build -t argus .
 ```
+
+## Portainer
+
+### Erstinstallation
+
+1. In Portainer **Stacks → Add stack** öffnen.
+2. Stack-Name vergeben, z. B. `argus`.
+3. Den Inhalt der `docker-compose.yml` aus diesem Repository in das Editor-Feld einfügen.
+4. Unter **Environment variables** können bei Bedarf Werte überschrieben werden (z. B. `PORT`).
+5. **Deploy the stack** klicken.
+
+Die App ist danach unter `http://<server-ip>:3000` erreichbar.  
+Das SQLite-Volume `argus-data` wird automatisch angelegt und überlebt alle Updates.
+
+### Update
+
+Da der Stack den **Watchtower**-Container enthält, werden Updates vollautomatisch eingespielt (alle 5 Minuten wird auf ein neues Image geprüft). Ein manuelles Update ist trotzdem jederzeit möglich:
+
+**Manuell über Portainer:**
+
+1. Stack in Portainer öffnen → **Editor**-Tab.
+2. Ohne Änderungen direkt **Update the stack** klicken.  
+   Portainer zieht dabei das aktuelle Image und startet den Container neu.
+
+**Alternativ über die Portainer-Container-Ansicht:**
+
+1. Container `argus` in der Container-Liste auswählen.
+2. **Recreate** → **Re-pull image** aktivieren → bestätigen.
+
+Die Datenbank bleibt in beiden Fällen erhalten, da sie im Volume `argus-data` liegt.

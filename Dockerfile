@@ -3,6 +3,9 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# python3, make and g++ are required by node-gyp to compile better-sqlite3
+RUN apk add --no-cache python3 make g++
+
 COPY package*.json ./
 RUN npm ci
 

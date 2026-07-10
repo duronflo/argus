@@ -5,11 +5,14 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Persist the SQLite database across container restarts and updates
-      - argus-data:/app/server
+      # Persist the SQLite database across container restarts and updates.
+      # Only the data directory is mounted – server code stays inside the image
+      # so that updates via Watchtower take effect immediately on restart.
+      - argus-data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_PATH=/app/data/data.db
     restart: unless-stopped
     labels:
       # Watchtower uses this label to identify containers it should manage

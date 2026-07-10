@@ -25,6 +25,9 @@ COPY server ./server
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Create the data directory that will be mounted as a volume for SQLite
+RUN mkdir -p /app/data
+
 EXPOSE 3000
 
 CMD ["node", "server/index.js"]

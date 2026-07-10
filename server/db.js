@@ -1,9 +1,15 @@
 import Database from 'better-sqlite3';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { mkdirSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_PATH = join(__dirname, 'data.db');
+// In Docker the DB lives in a dedicated data volume (/app/data/); locally it
+// falls back to a "data/" sibling of the project root so it is never committed.
+const DB_PATH = process.env.DB_PATH || join(__dirname, '..', 'data', 'data.db');
+
+// Ensure the parent directory exists (important for the first local run)
+mkdirSync(dirname(DB_PATH), { recursive: true });
 
 const db = new Database(DB_PATH);
 

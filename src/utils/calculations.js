@@ -40,10 +40,13 @@ export function calcEinheitStats(einheit, gewerke, angebote) {
   let totalBeauftragt = 0;
   let totalBezahlt = 0;
   unitGewerke.forEach((g) => {
-    const count = g.einheitIds.length || 1;
+    const anteile = g.einheitAnteile || {};
+    const pct = anteile[einheit.id] != null
+      ? anteile[einheit.id] / 100
+      : 1 / (g.einheitIds.length || 1);
     const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-    totalBeauftragt += gwAngebote.reduce((s, a) => s + (a.betragBeauftragt || 0), 0) / count;
-    totalBezahlt += gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0) / count;
+    totalBeauftragt += gwAngebote.reduce((s, a) => s + (a.betragBeauftragt || 0), 0) * pct;
+    totalBezahlt += gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0) * pct;
   });
   return {
     sumBeauftragt: totalBeauftragt,

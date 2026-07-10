@@ -60,6 +60,14 @@ function getKatColor(kat) {
   return KATEGORIE_COLORS[kat] || '#2563eb';
 }
 
+function getISOWeek(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const yearStart = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d - yearStart) / 86400000 - 3 + ((yearStart.getDay() + 6) % 7)) / 7);
+}
+
 function GanttChart({ gewerke, meilensteine }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -85,7 +93,6 @@ function GanttChart({ gewerke, meilensteine }) {
   minDate.setDate(minDate.getDate() - 7);
   maxDate.setDate(maxDate.getDate() + 14);
 
-
   function pct(date) {
     if (!date) return null;
     const d = new Date(date);
@@ -107,33 +114,62 @@ function GanttChart({ gewerke, meilensteine }) {
   const cur = new Date(minDate);
   cur.setDate(1);
   while (cur <= maxDate) {
-    const p = pct(cur);
     months.push({
       label: cur.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' }),
-      pct: p,
+      pct: pct(cur),
     });
     cur.setMonth(cur.getMonth() + 1);
+  }
+
+  // Calendar-week markers – adaptive density to avoid label overlap
+  const totalWeeks = (maxDate - minDate) / (7 * 86400000);
+  const weekStep = totalWeeks <= 16 ? 1 : totalWeeks <= 32 ? 2 : 4;
+
+  const weeks = [];
+  const firstMonday = new Date(minDate);
+  const dow = (firstMonday.getDay() + 6) % 7; // Mon=0
+  if (dow !== 0) firstMonday.setDate(firstMonday.getDate() + (7 - dow));
+  const wCur = new Date(firstMonday);
+  let weekIdx = 0;
+  while (wCur <= maxDate) {
+    if (weekIdx % weekStep === 0) {
+      weeks.push({ label: `KW\u00A0${getISOWeek(wCur)}`, pct: pct(wCur) });
+    }
+    wCur.setDate(wCur.getDate() + 7);
+    weekIdx++;
   }
 
   const todayPct = pct(today);
 
   return (
     <div className="gantt-wrap">
-      {/* Month axis */}
+      {/* Time axis: month row + calendar-week row */}
       <div className="gantt-axis">
         <div className="gantt-label-col" />
-        <div className="gantt-bar-col gantt-axis-months">
-          {months.map((m) => (
-            <div key={m.pct} className="gantt-month-mark" style={{ left: `${m.pct}%` }}>
-              <div className="gantt-month-line" />
-              <span className="gantt-month-label">{m.label}</span>
-            </div>
-          ))}
-          {todayPct !== null && (
-            <div className="gantt-today-line" style={{ left: `${todayPct}%` }}>
-              <span className="gantt-today-label">Heute</span>
-            </div>
-          )}
+        <div className="gantt-bar-col gantt-axis-bar">
+          {/* Month row */}
+          <div className="gantt-axis-row gantt-axis-months">
+            {months.map((m) => (
+              <div key={m.pct} className="gantt-month-mark" style={{ left: `${m.pct}%` }}>
+                <div className="gantt-month-line" />
+                <span className="gantt-month-label">{m.label}</span>
+              </div>
+            ))}
+          </div>
+          {/* Calendar-week row */}
+          <div className="gantt-axis-row gantt-axis-weeks">
+            {weeks.map((w) => (
+              <div key={w.pct} className="gantt-week-mark" style={{ left: `${w.pct}%` }}>
+                <div className="gantt-week-line" />
+                <span className="gantt-week-label">{w.label}</span>
+              </div>
+            ))}
+            {todayPct !== null && (
+              <div className="gantt-today-line" style={{ left: `${todayPct}%` }}>
+                <span className="gantt-today-label">Heute</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

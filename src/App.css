@@ -1200,9 +1200,24 @@ body {
 
 .gantt-axis {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   margin-bottom: 4px;
-  height: 28px;
+}
+
+.gantt-axis-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.gantt-axis-row {
+  position: relative;
+  height: 26px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.gantt-axis-months {
+  /* border-bottom provided by .gantt-axis-row */
 }
 
 .gantt-label-col {
@@ -1218,13 +1233,9 @@ body {
   min-height: 24px;
 }
 
-.gantt-axis-months {
-  border-bottom: 1px solid #e5e7eb;
-}
-
 .gantt-month-mark {
   position: absolute;
-  top: 0;
+  top: 2px;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -1233,15 +1244,38 @@ body {
 
 .gantt-month-line {
   width: 1px;
-  height: 10px;
+  height: 8px;
   background: #d1d5db;
 }
 
 .gantt-month-label {
   font-size: 10px;
-  color: #9ca3af;
+  font-weight: 600;
+  color: #6b7280;
   white-space: nowrap;
   margin-top: 2px;
+}
+
+.gantt-week-mark {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gantt-week-line {
+  width: 1px;
+  height: 6px;
+  background: #e5e7eb;
+}
+
+.gantt-week-label {
+  font-size: 9px;
+  color: #9ca3af;
+  white-space: nowrap;
+  margin-top: 1px;
 }
 
 .gantt-today-line {

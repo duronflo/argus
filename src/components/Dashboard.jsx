@@ -164,6 +164,7 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, ei
               gewerke.map((g) => {
                 const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
                 const ausgewaehlt = gwAngebote.find((a) => a.status === 'ausgewählt');
+                const angebotssumme = gwAngebote.reduce((sum, a) => sum + (a.betragAngebot || 0), 0);
                 const overdue = isOverdue(g.geplantesEnde, g.status);
                 const assignedUnits = einheiten
                   ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
@@ -177,6 +178,11 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, ei
                     <div className="gewerk-overview-main">
                       <span className="gewerk-overview-name">{g.name}</span>
                       <span className="gewerk-overview-kat">{g.kategorie}</span>
+                      {g.budget > 0 && (
+                        <span className="gewerk-overview-budget">
+                          Budget {formatCurrency(g.budget)}
+                        </span>
+                      )}
                       {assignedUnits.length > 0 && (
                         <div className="gewerk-overview-units">
                           {assignedUnits.map((eh) => (
@@ -190,6 +196,11 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, ei
                       {ausgewaehlt && (
                         <span className="gewerk-overview-amount">
                           {formatCurrency(ausgewaehlt.betragBeauftragt)}
+                        </span>
+                      )}
+                      {!ausgewaehlt && angebotssumme > 0 && (
+                        <span className="gewerk-overview-amount gewerk-overview-amount--muted">
+                          Angebot {formatCurrency(angebotssumme)}
                         </span>
                       )}
                     </div>

@@ -19,6 +19,7 @@ function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
       tatsaechlichesEnde: '',
       einheitIds: [],
       einheitAnteile: {},
+      budget: 0,
     }
   );
   function set(f, v) { setForm((p) => ({ ...p, [f]: v })); }
@@ -48,6 +49,11 @@ function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
           <select className="select" value={form.kategorie} onChange={(e) => set('kategorie', e.target.value)}>
             {kategorien.map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
+        </div>
+        <div className="form-row">
+          <label className="form-label">Budget laut Kostenschätzung (€)</label>
+          <input className="input" type="number" step="100" min="0" value={form.budget || ''} onChange={(e) => set('budget', parseFloat(e.target.value) || 0)} />
+          <span className="form-hint">Wird nicht als beauftragt gezählt, solange kein Angebot vorhanden ist.</span>
         </div>
         <div className="form-row">
           <label className="form-label">Status</label>

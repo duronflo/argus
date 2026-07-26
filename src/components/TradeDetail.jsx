@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Badge from './Badge';
 import OfferTable from './OfferTable';
 import Modal from './Modal';
-import { formatDate, isOverdue } from '../utils/dateUtils';
+import { formatCurrency, formatDate, isOverdue } from '../utils/dateUtils';
 
 const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
 
@@ -19,6 +19,7 @@ function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
       tatsaechlichesEnde: '',
       einheitIds: [],
       einheitAnteile: {},
+      budget: 0,
     }
   );
 
@@ -249,6 +250,10 @@ export default function TradeDetail({
       <div className="trade-detail-meta">
         <div className="meta-grid">
           <div className="meta-item">
+            <span className="meta-label">Budget laut Kostenschätzung</span>
+            <span className="meta-value">{gewerk.budget > 0 ? formatCurrency(gewerk.budget) : '—'}</span>
+          </div>
+          <div className="meta-item">
             <span className="meta-label">Geplanter Start</span>
             <span className="meta-value">{formatDate(gewerk.geplanterStart)}</span>
           </div>
@@ -264,6 +269,11 @@ export default function TradeDetail({
             <span className="meta-label">Tats. Ende</span>
             <span className="meta-value">{formatDate(gewerk.tatsaechlichesEnde)}</span>
           </div>
+        </div>
+        <div className="trade-budget-summary">
+          <span>Kostenschätzung: <strong>{formatCurrency(gewerk.budget || 0)}</strong></span>
+          <span>Angebote: <strong>{formatCurrency(angebote.reduce((sum, a) => sum + (a.betragAngebot || 0), 0))}</strong></span>
+          <span>Beauftragt: <strong>{formatCurrency(angebote.reduce((sum, a) => sum + (a.betragBeauftragt || 0), 0))}</strong></span>
         </div>
         {gewerk.notizen && (
           <div className="meta-notes">
@@ -295,7 +305,7 @@ export default function TradeDetail({
             einheiten={einheiten}
             kategorien={kats}
             onSave={(data) => {
-              onEditGewerk({ ...gewerk, ...data });
+              onEditGewerk({ ...gewerk, ...data, budget: parseFloat(data.budget) || 0 });
               setShowEditForm(false);
             }}
             onCancel={() => setShowEditForm(false)}

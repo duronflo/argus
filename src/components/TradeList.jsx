@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Badge from './Badge';
-import { isOverdue } from '../utils/dateUtils';
+import { formatCurrency, isOverdue } from '../utils/dateUtils';
 
 const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
 
@@ -82,6 +82,7 @@ export default function TradeList({
                 <div className="trade-item-main">
                   <span className="trade-item-name">{g.name}</span>
                   <span className="trade-item-kat">{g.kategorie}</span>
+                  {g.budget > 0 && <span className="trade-item-budget">Budget {formatCurrency(g.budget)}</span>}
                   {assignedUnits.length > 0 && (
                     <div className="trade-item-units">
                       {assignedUnits.map((eh) => (

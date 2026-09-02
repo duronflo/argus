@@ -1,12 +1,10 @@
 import { formatCurrency } from '../utils/dateUtils';
-import { calcEinheitStats, calcProjectBudget, isProjectBudgetDerived } from '../utils/calculations';
+import { calcEinheitStats, calcProjectBudget } from '../utils/calculations';
+import BudgetOverview from './BudgetOverview';
 
 export default function ProjectHeader({ projekt, angebote, einheiten, gewerke, onEdit }) {
   const effectiveBudget = calcProjectBudget(projekt, einheiten);
-  const derived = isProjectBudgetDerived(einheiten);
   const beauftragt = angebote.reduce((s, a) => s + (a.betragBeauftragt || 0), 0);
-  const budgetPct = effectiveBudget > 0 ? Math.min((beauftragt / effectiveBudget) * 100, 100) : 0;
-  const budgetOver = effectiveBudget > 0 && beauftragt > effectiveBudget;
 
   return (
     <div className="project-header">
@@ -18,25 +16,7 @@ export default function ProjectHeader({ projekt, angebote, einheiten, gewerke, o
         <button className="btn btn-ghost" onClick={onEdit}>✏ Bearbeiten</button>
       </div>
       {effectiveBudget > 0 && (
-        <div className="budget-bar-wrap">
-          <div className="budget-bar-labels">
-            <span>Beauftragt: {formatCurrency(beauftragt)}</span>
-            <span style={{ color: budgetOver ? '#dc2626' : undefined }}>
-              Budget: {formatCurrency(effectiveBudget)}
-              {derived && <span className="budget-derived-hint"> (aus Einheiten)</span>}
-              {budgetOver && ' ⚠ Überschritten!'}
-            </span>
-          </div>
-          <div className="budget-bar">
-            <div
-              className="budget-bar-fill"
-              style={{
-                width: `${budgetPct}%`,
-                background: budgetOver ? '#dc2626' : budgetPct > 80 ? '#d97706' : '#2563eb',
-              }}
-            />
-          </div>
-        </div>
+        <BudgetOverview planned={effectiveBudget} contracted={beauftragt} paid={angebote.reduce((s, a) => s + (a.bezahlt || 0), 0)} />
       )}
       {einheiten && einheiten.length > 0 && (
         <div className="project-header-units">

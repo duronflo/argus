@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { formatCurrency } from '../utils/dateUtils';
 import { calcEinheitStats } from '../utils/calculations';
 import { generateId } from '../utils/dateUtils';
+import BudgetOverview from './BudgetOverview';
 
 function EinheitForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState(
@@ -125,6 +126,11 @@ export default function EinheitenView({
                     </div>
                   </div>
                 )}
+                <BudgetOverview
+                  planned={eh.budget}
+                  contracted={stats.sumBeauftragt}
+                  paid={stats.sumBezahlt}
+                />
               </div>
             );
           })}

@@ -5,7 +5,7 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 ## Screenshots
 
 ### Dashboard – Projektübersicht & KPIs
-> Das Dashboard zeigt auf einen Blick: geplantes Budget, beauftragte und bezahlte Kosten, offene Angebote sowie den Gewerke-Status.
+> Das Dashboard zeigt auf einen Blick: Gesamtbudget, geplante und bezahlte Kosten, offene Angebote sowie den Gewerke-Status.
 
 ### Gewerke – Kostenverteilung auf Einheiten
 > Pro Gewerk lässt sich die Kostenaufteilung auf die zugewiesenen Einheiten per Schieberegler oder Textfeld in % festlegen. Initial wird gleichmäßig verteilt.
@@ -17,10 +17,10 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 
 - **Passwortschutz** – Cookie-basiert (100 Tage gültig), Initial-Passwort `0000`, änderbar über „Projekt bearbeiten"
 - **Erweiterbare Kategorien** – Kategorien (Dachdecker, Elektro, …) im Projekt-Dialog verwaltbar (hinzufügen / entfernen)
-- **Budgetübersicht** – Geplantes, beauftragtes und bezahltes Budget im direkten Vergleich, auch je Einheit
+- **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit
 - **Kostenverteilung je Einheit** – Pro Gewerk Aufteilung auf Einheiten per Schieberegler + Textbox (%), initial gleichmäßig
 
-- **Dashboard** mit KPI-Karten (Gewerke, Angebote, Beauftragt, Bezahlt) und Budgetübersicht
+- **Dashboard** mit KPI-Karten (Gewerke, Angebote, Geplant, Bezahlt) und Budgetübersicht
 - **Angebote** – Alle Angebote nach Gewerk gruppiert, filterbar nach Status oder Anbieter/Titel
 - **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung
 - Ampellogik / Badges für alle Status

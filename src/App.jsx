@@ -62,16 +62,17 @@ function migrateData(parsed) {
   if (parsed.gewerke) {
     parsed.gewerke = parsed.gewerke.map((g) => {
       const g2 = g.einheitIds ? g : { ...g, einheitIds: [] };
-      if (!g2.einheitAnteile) {
-        const ids = g2.einheitIds || [];
+      const g3 = g2.geplantBudget == null ? { ...g2, geplantBudget: 0 } : g2;
+      if (!g3.einheitAnteile) {
+        const ids = g3.einheitIds || [];
         const pct = ids.length > 0 ? Math.round(100 / ids.length) : 0;
         const anteile = {};
         ids.forEach((id, i) => {
           anteile[id] = i === ids.length - 1 ? 100 - pct * (ids.length - 1) : pct;
         });
-        return { ...g2, einheitAnteile: anteile };
+        return { ...g3, einheitAnteile: anteile };
       }
-      return g2;
+      return g3;
     });
   }
   return parsed;

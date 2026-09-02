@@ -1,10 +1,10 @@
 import { formatCurrency } from '../utils/dateUtils';
-import { calcEinheitStats, calcProjectBudget } from '../utils/calculations';
+import { calcEinheitStats, calcProjectBudget, sumGeplant } from '../utils/calculations';
 import BudgetOverview from './BudgetOverview';
 
 export default function ProjectHeader({ projekt, angebote, einheiten, gewerke, onEdit }) {
   const effectiveBudget = calcProjectBudget(projekt, einheiten);
-  const beauftragt = angebote.reduce((s, a) => s + (a.betragBeauftragt || 0), 0);
+  const geplant = sumGeplant(gewerke || []);
 
   return (
     <div className="project-header">
@@ -16,20 +16,20 @@ export default function ProjectHeader({ projekt, angebote, einheiten, gewerke, o
         <button className="btn btn-ghost" onClick={onEdit}>✏ Bearbeiten</button>
       </div>
       {effectiveBudget > 0 && (
-        <BudgetOverview planned={effectiveBudget} contracted={beauftragt} paid={angebote.reduce((s, a) => s + (a.bezahlt || 0), 0)} />
+        <BudgetOverview budget={effectiveBudget} planned={geplant} paid={angebote.reduce((s, a) => s + (a.bezahlt || 0), 0)} />
       )}
       {einheiten && einheiten.length > 0 && (
         <div className="project-header-units">
           {einheiten.map((eh) => {
             const stats = calcEinheitStats(eh, gewerke || [], angebote);
-            const pct = eh.budget > 0 ? Math.min((stats.sumBeauftragt / eh.budget) * 100, 100) : 0;
-            const over = eh.budget > 0 && stats.sumBeauftragt > eh.budget;
+            const pct = eh.budget > 0 ? Math.min((stats.sumGeplant / eh.budget) * 100, 100) : 0;
+            const over = eh.budget > 0 && stats.sumGeplant > eh.budget;
             return (
               <div key={eh.id} className="project-header-unit">
                 <div className="budget-bar-labels">
                   <span className="project-header-unit-name">{eh.name}</span>
                   <span style={{ color: over ? '#dc2626' : undefined, fontSize: 11 }}>
-                    {formatCurrency(stats.sumBeauftragt)}{eh.budget > 0 && ` / ${formatCurrency(eh.budget)}`}
+                    {formatCurrency(stats.sumGeplant)}{eh.budget > 0 && ` / ${formatCurrency(eh.budget)}`}
                     {over && ' ⚠'}
                   </span>
                 </div>

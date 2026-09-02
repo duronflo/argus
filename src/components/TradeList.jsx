@@ -27,8 +27,11 @@ export default function TradeList({
       : true;
     return matchSearch && matchStatus && matchEinheit;
   }).sort((a, b) => {
-    const direction = sortOrder === 'name-desc' ? -1 : 1;
-    return direction * a.name.localeCompare(b.name, 'de', { sensitivity: 'base' });
+    const direction = sortOrder.endsWith('-desc') ? -1 : 1;
+    if (sortOrder.startsWith('budget-')) return direction * ((a.geplantBudget || 0) - (b.geplantBudget || 0));
+    if (sortOrder.startsWith('units-')) return direction * ((a.einheitIds || []).length - (b.einheitIds || []).length);
+    const field = sortOrder.startsWith('category-') ? 'kategorie' : sortOrder.startsWith('status-') ? 'status' : 'name';
+    return direction * a[field].localeCompare(b[field], 'de', { sensitivity: 'base' });
   });
 
   return (
@@ -62,6 +65,14 @@ export default function TradeList({
         >
           <option value="name-asc">Name (A–Z)</option>
           <option value="name-desc">Name (Z–A)</option>
+          <option value="category-asc">Kategorie (A–Z)</option>
+          <option value="category-desc">Kategorie (Z–A)</option>
+          <option value="status-asc">Status (A–Z)</option>
+          <option value="status-desc">Status (Z–A)</option>
+          <option value="budget-asc">Budget (aufsteigend)</option>
+          <option value="budget-desc">Budget (absteigend)</option>
+          <option value="units-asc">Einheiten (aufsteigend)</option>
+          <option value="units-desc">Einheiten (absteigend)</option>
         </select>
         {einheiten && einheiten.length > 0 && (
           <select

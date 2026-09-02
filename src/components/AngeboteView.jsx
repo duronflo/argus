@@ -7,6 +7,7 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEinheit, setFilterEinheit] = useState('');
+  const [sortOrder, setSortOrder] = useState('gewerk-asc');
 
   const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
 
@@ -28,13 +29,23 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
   // Group by gewerk
   const grouped = useMemo(() => {
     const map = {};
-    filtered.forEach((a) => {
+    [...filtered].sort((a, b) => {
+      const gewerkA = gewerke.find((g) => g.id === a.gewerkId);
+      const gewerkB = gewerke.find((g) => g.id === b.gewerkId);
+      const direction = sortOrder.endsWith('-desc') ? -1 : 1;
+      if (sortOrder.startsWith('amount-')) return direction * ((a.betragAngebot || 0) - (b.betragAngebot || 0));
+      if (sortOrder.startsWith('date-')) return direction * (a.datum || '').localeCompare(b.datum || '');
+      const field = sortOrder.startsWith('anbieter-') ? 'anbieter' : sortOrder.startsWith('title-') ? 'titel' : sortOrder.startsWith('status-') ? 'status' : null;
+      const fieldA = field ? a[field] || '' : gewerkA?.name || '';
+      const fieldB = field ? b[field] || '' : gewerkB?.name || '';
+      return direction * fieldA.localeCompare(fieldB, 'de', { sensitivity: 'base' });
+    }).forEach((a) => {
       const key = a.gewerkId || '__none__';
       if (!map[key]) map[key] = [];
       map[key].push(a);
     });
     return Object.entries(map);
-  }, [filtered]);
+  }, [filtered, gewerke, sortOrder]);
 
   return (
     <div className="angebote-view">
@@ -46,16 +57,8 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
           <span className="stat-chip-value">{formatCurrency(stats.sumAngebote)}</span>
         </div>
         <div className="stat-chip">
-          <span className="stat-chip-label">Beauftragt</span>
-          <span className="stat-chip-value">{formatCurrency(stats.sumBeauftragt)}</span>
-        </div>
-        <div className="stat-chip">
           <span className="stat-chip-label">Bezahlt</span>
           <span className="stat-chip-value">{formatCurrency(stats.sumBezahlt)}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-chip-label">Offen</span>
-          <span className="stat-chip-value">{formatCurrency(stats.sumOffen)}</span>
         </div>
       </div>
 
@@ -71,6 +74,20 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
           <option value="offen">Offen</option>
           <option value="ausgewählt">Ausgewählt</option>
           <option value="abgelehnt">Abgelehnt</option>
+        </select>
+        <select className="select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} aria-label="Angebote sortieren">
+          <option value="gewerk-asc">Gewerk (A–Z)</option>
+          <option value="gewerk-desc">Gewerk (Z–A)</option>
+          <option value="anbieter-asc">Anbieter (A–Z)</option>
+          <option value="anbieter-desc">Anbieter (Z–A)</option>
+          <option value="title-asc">Titel (A–Z)</option>
+          <option value="title-desc">Titel (Z–A)</option>
+          <option value="amount-asc">Betrag (aufsteigend)</option>
+          <option value="amount-desc">Betrag (absteigend)</option>
+          <option value="date-asc">Datum (aufsteigend)</option>
+          <option value="date-desc">Datum (absteigend)</option>
+          <option value="status-asc">Status (A–Z)</option>
+          <option value="status-desc">Status (Z–A)</option>
         </select>
         {einheiten && einheiten.length > 0 && (
           <select className="select" value={filterEinheit} onChange={(e) => setFilterEinheit(e.target.value)}>
@@ -111,7 +128,6 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
                       <th>Anbieter</th>
                       <th>Titel</th>
                       <th className="text-right">Angebot</th>
-                      <th className="text-right">Beauftragt</th>
                       <th className="text-right">Bezahlt</th>
                       <th>Datum</th>
                       <th>Gültig bis</th>
@@ -125,8 +141,7 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
                         <td><strong>{a.anbieter}</strong></td>
                         <td>{a.titel || '—'}</td>
                         <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
-                        <td className="text-right">{a.betragBeauftragt > 0 ? formatCurrency(a.betragBeauftragt) : '—'}</td>
-                        <td className={`text-right${a.bezahlt > a.betragBeauftragt && a.betragBeauftragt > 0 ? ' warn-text' : ''}`}>
+                        <td className="text-right">
                           {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : '—'}
                         </td>
                         <td>{formatDate(a.datum)}</td>

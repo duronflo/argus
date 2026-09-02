@@ -4,6 +4,10 @@ export function sumAngebote(angebote) {
   return angebote.reduce((sum, a) => sum + (a.betragAngebot || 0), 0);
 }
 
+export function sumGeplant(gewerke) {
+  return gewerke.reduce((sum, g) => sum + (g.geplantBudget || 0), 0);
+}
+
 export function sumBeauftragt(angebote) {
   return angebote.reduce((sum, a) => sum + (a.betragBeauftragt || 0), 0);
 }
@@ -37,7 +41,7 @@ export function calcEinheitStats(einheit, gewerke, angebote) {
   const unitGewerke = gewerke.filter(
     (g) => g.einheitIds && g.einheitIds.includes(einheit.id)
   );
-  let totalBeauftragt = 0;
+  let totalGeplant = 0;
   let totalBezahlt = 0;
   unitGewerke.forEach((g) => {
     const anteile = g.einheitAnteile || {};
@@ -45,13 +49,13 @@ export function calcEinheitStats(einheit, gewerke, angebote) {
       ? anteile[einheit.id] / 100
       : 1 / (g.einheitIds.length || 1);
     const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-    totalBeauftragt += gwAngebote.reduce((s, a) => s + (a.betragBeauftragt || 0), 0) * pct;
+    totalGeplant += (g.geplantBudget || 0) * pct;
     totalBezahlt += gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0) * pct;
   });
   return {
-    sumBeauftragt: totalBeauftragt,
+    sumGeplant: totalGeplant,
     sumBezahlt: totalBezahlt,
-    sumOffen: totalBeauftragt - totalBezahlt,
+    sumOffen: totalGeplant - totalBezahlt,
   };
 }
 

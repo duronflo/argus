@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatCurrency, formatDate } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/dateUtils';
 import Badge from './Badge';
 import Modal from './Modal';
 
@@ -12,8 +12,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
       titel: '',
       betragAngebot: '',
       bezahlt: '',
-      datum: '',
-      gueltigBis: '',
       status: 'offen',
       notiz: '',
     }
@@ -52,16 +50,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
         <label className="form-label">Bezahlt (€)</label>
         <input className="input" type="number" step="0.01" min="0" value={form.bezahlt} onChange={(e) => set('bezahlt', e.target.value)} />
       </div>
-      <div className="form-row-2">
-        <div className="form-row">
-          <label className="form-label">Datum</label>
-          <input className="input" type="date" value={form.datum} onChange={(e) => set('datum', e.target.value)} />
-        </div>
-        <div className="form-row">
-          <label className="form-label">Gültig bis</label>
-          <input className="input" type="date" value={form.gueltigBis} onChange={(e) => set('gueltigBis', e.target.value)} />
-        </div>
-      </div>
       <div className="form-row">
         <label className="form-label">Status</label>
         <select className="select" value={form.status} onChange={(e) => set('status', e.target.value)}>
@@ -90,7 +78,6 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
   const sortedAngebote = [...angebote].sort((a, b) => {
     const direction = sortOrder.endsWith('-desc') ? -1 : 1;
     if (sortOrder.startsWith('amount-')) return direction * ((a.betragAngebot || 0) - (b.betragAngebot || 0));
-    if (sortOrder.startsWith('date-')) return direction * (a.datum || '').localeCompare(b.datum || '');
     const field = sortOrder.startsWith('title-') ? 'titel' : sortOrder.startsWith('status-') ? 'status' : 'anbieter';
     return direction * (a[field] || '').localeCompare(b[field] || '', 'de', { sensitivity: 'base' });
   });
@@ -112,8 +99,6 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
           <option value="title-desc">Titel (Z–A)</option>
           <option value="amount-asc">Betrag (aufsteigend)</option>
           <option value="amount-desc">Betrag (absteigend)</option>
-          <option value="date-asc">Datum (aufsteigend)</option>
-          <option value="date-desc">Datum (absteigend)</option>
           <option value="status-asc">Status (A–Z)</option>
           <option value="status-desc">Status (Z–A)</option>
         </select>
@@ -130,7 +115,6 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
                 <th>Titel</th>
                 <th className="text-right">Angebot</th>
                 <th className="text-right">Bezahlt</th>
-                <th>Datum</th>
                 <th>Status</th>
                 <th></th>
               </tr>
@@ -144,7 +128,6 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
                   <td className="text-right">
                     {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : '—'}
                   </td>
-                  <td>{formatDate(a.datum)}</td>
                   <td><Badge status={a.status} small /></td>
                   <td>
                     <div className="row-actions">
@@ -160,7 +143,7 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
                 <td colSpan={2}><strong>Summen</strong></td>
                 <td className="text-right"><strong>{formatCurrency(sumAngebote)}</strong></td>
                 <td className="text-right"><strong>{formatCurrency(sumBezahlt)}</strong></td>
-                <td colSpan={3}></td>
+                <td colSpan={2}></td>
               </tr>
             </tfoot>
           </table>

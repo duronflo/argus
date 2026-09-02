@@ -61,8 +61,6 @@ export async function exportExcel(data, filename) {
   headerRow(sheetGewerke, [
     'Name', 'Kategorie', 'Status',
     'Geplantes Budget (€)',
-    'Geplanter Start', 'Geplantes Ende',
-    'Tatsächlicher Start', 'Tatsächliches Ende',
     'Zugeordnete Einheiten', 'Notizen',
   ]);
   gewerke.forEach((g) => {
@@ -75,10 +73,6 @@ export async function exportExcel(data, filename) {
       g.kategorie || '',
       g.status || '',
       currency(g.geplantBudget),
-      g.geplanterStart || '',
-      g.geplantesEnde || '',
-      g.tatsaechlicherStart || '',
-      g.tatsaechlichesEnde || '',
       assignedNames,
       g.notizen || '',
     ]);
@@ -90,7 +84,7 @@ export async function exportExcel(data, filename) {
   headerRow(sheetAngebote, [
     'Gewerk', 'Anbieter', 'Titel',
     'Angebotsbetrag (€)', 'Bezahlt (€)',
-    'Status', 'Datum', 'Gültig bis', 'Notiz',
+    'Status', 'Notiz',
   ]);
   angebote.forEach((a) => {
     const gewerk = gewerke.find((g) => g.id === a.gewerkId);
@@ -101,8 +95,6 @@ export async function exportExcel(data, filename) {
       currency(a.betragAngebot),
       currency(a.bezahlt),
       a.status || '',
-      a.datum || '',
-      a.gueltigBis || '',
       a.notiz || '',
     ]);
   });

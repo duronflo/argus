@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Modal from './Modal';
 import { formatCurrency } from '../utils/dateUtils';
 import { calcEinheitStats } from '../utils/calculations';
 import { generateId } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
+import PieChart from './PieChart';
+import { colorForKey } from '../utils/colors';
 
 function EinheitForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState(
@@ -50,6 +52,14 @@ export default function EinheitenView({
     return direction * a.name.localeCompare(b.name, 'de', { sensitivity: 'base' });
   });
 
+  const distributionSegments = useMemo(() => (
+    einheiten.map((eh) => ({
+      label: eh.name,
+      value: calcEinheitStats(eh, gewerke, angebote).sumGeplant,
+      color: colorForKey(eh.id),
+    }))
+  ), [einheiten, gewerke, angebote]);
+
   function handleAdd(data) {
     onAddEinheit({ ...data, id: generateId('eh') });
     setShowAddForm(false);
@@ -72,6 +82,13 @@ export default function EinheitenView({
         </select>
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddForm(true)}>+ Neue Einheit</button>
       </div>
+
+      {einheiten.length > 1 && (
+        <div className="dashboard-section budget-overview-section">
+          <h3 className="subsection-title">Budgetverteilung (geplant)</h3>
+          <PieChart segments={distributionSegments} emptyText="Noch keine geplanten Kosten vorhanden." />
+        </div>
+      )}
 
       {einheiten.length === 0 ? (
         <p className="empty-state">Noch keine Einheiten angelegt. Füge Einheiten hinzu, um Gewerke und Budgets getrennt zu verfolgen.</p>

@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
 import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
 import { formatCurrency } from '../utils/dateUtils';
-import Badge from './Badge';
-import CategoryTag from './CategoryTag';
 import BudgetOverview from './BudgetOverview';
 
 function KpiCard({ label, value, sub, warn }) {
@@ -123,50 +121,6 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
           </div>
         </div>
       )}
-
-      <div className="dashboard-section">
-        <h3 className="subsection-title">Gewerke-Übersicht</h3>
-        <div className="gewerk-overview-list">
-          {gewerke.length === 0 ? (
-            <p className="empty-state">Keine Gewerke angelegt.</p>
-          ) : (
-            gewerke.map((g) => {
-              const assignedUnits = einheiten
-                ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
-                : [];
-              return (
-                <div
-                  key={g.id}
-                  className="gewerk-overview-item"
-                  onClick={() => onNavigate('gewerke', g.id)}
-                >
-                  <div className="gewerk-overview-main">
-                    <div className="gewerk-overview-name-row">
-                      <span className="gewerk-overview-name">{g.name}</span>
-                      <CategoryTag kategorie={g.kategorie} small />
-                    </div>
-                    {assignedUnits.length > 0 && (
-                      <div className="gewerk-overview-units">
-                        {assignedUnits.map((eh) => (
-                          <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="gewerk-overview-right">
-                    <Badge status={g.status} small />
-                    {g.geplantBudget > 0 && (
-                      <span className="gewerk-overview-amount">
-                        {formatCurrency(g.geplantBudget)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
     </div>
   );
 }

@@ -43,6 +43,12 @@ export default function EinheitenView({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [sortOrder, setSortOrder] = useState('name-asc');
+  const sortedEinheiten = [...einheiten].sort((a, b) => {
+    const direction = sortOrder === 'name-desc' ? -1 : 1;
+    if (sortOrder.startsWith('budget-')) return direction * ((a.budget || 0) - (b.budget || 0));
+    return direction * a.name.localeCompare(b.name, 'de', { sensitivity: 'base' });
+  });
 
   function handleAdd(data) {
     onAddEinheit({ ...data, id: generateId('eh') });
@@ -58,6 +64,12 @@ export default function EinheitenView({
     <div className="einheiten-view">
       <div className="einheiten-header">
         <h2 className="section-title">Einheiten / Kostenstellen</h2>
+        <select className="select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} aria-label="Einheiten sortieren">
+          <option value="name-asc">Name (A–Z)</option>
+          <option value="name-desc">Name (Z–A)</option>
+          <option value="budget-asc">Budget (aufsteigend)</option>
+          <option value="budget-desc">Budget (absteigend)</option>
+        </select>
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddForm(true)}>+ Neue Einheit</button>
       </div>
 
@@ -65,9 +77,9 @@ export default function EinheitenView({
         <p className="empty-state">Noch keine Einheiten angelegt. Füge Einheiten hinzu, um Gewerke und Budgets getrennt zu verfolgen.</p>
       ) : (
         <div className="einheiten-list">
-          {einheiten.map((eh) => {
+          {sortedEinheiten.map((eh) => {
             const stats = calcEinheitStats(eh, gewerke, angebote);
-            const budgetOver = eh.budget > 0 && stats.sumBeauftragt > eh.budget;
+            const budgetOver = eh.budget > 0 && stats.sumGeplant > eh.budget;
             const unitGewerkeCount = gewerke.filter(
               (g) => g.einheitIds && g.einheitIds.includes(eh.id)
             ).length;
@@ -93,8 +105,8 @@ export default function EinheitenView({
                     <span className="einheit-stat-value">{eh.budget > 0 ? formatCurrency(eh.budget) : '—'}</span>
                   </div>
                   <div className="einheit-stat">
-                    <span className="einheit-stat-label">Beauftragt</span>
-                    <span className={`einheit-stat-value${budgetOver ? ' warn-text' : ''}`}>{formatCurrency(stats.sumBeauftragt)}</span>
+                    <span className="einheit-stat-label">Geplant</span>
+                    <span className={`einheit-stat-value${budgetOver ? ' warn-text' : ''}`}>{formatCurrency(stats.sumGeplant)}</span>
                   </div>
                   <div className="einheit-stat">
                     <span className="einheit-stat-label">Bezahlt</span>
@@ -107,8 +119,8 @@ export default function EinheitenView({
                 </div>
 
                 <BudgetOverview
-                  planned={eh.budget}
-                  contracted={stats.sumBeauftragt}
+                  budget={eh.budget}
+                  planned={stats.sumGeplant}
                   paid={stats.sumBezahlt}
                 />
               </div>

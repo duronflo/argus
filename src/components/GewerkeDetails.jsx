@@ -15,6 +15,7 @@ function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
       notizen: '',
       geplanterStart: '',
       geplantesEnde: '',
+      geplantBudget: '',
       tatsaechlicherStart: '',
       tatsaechlichesEnde: '',
       einheitIds: [],
@@ -37,7 +38,7 @@ function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
   }
 
   return (
-    <form className="form" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
+    <form className="form" onSubmit={(e) => { e.preventDefault(); onSave({ ...form, geplantBudget: parseFloat(form.geplantBudget) || 0 }); }}>
       <div className="form-row">
         <label className="form-label">Name *</label>
         <input className="input" required value={form.name} onChange={(e) => set('name', e.target.value)} />
@@ -75,6 +76,10 @@ function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
           <label className="form-label">Tats. Ende</label>
           <input className="input" type="date" value={form.tatsaechlichesEnde} onChange={(e) => set('tatsaechlichesEnde', e.target.value)} />
         </div>
+      </div>
+      <div className="form-row">
+        <label className="form-label">Geplantes Budget (€)</label>
+        <input className="input" type="number" step="0.01" min="0" value={form.geplantBudget} onChange={(e) => set('geplantBudget', e.target.value)} />
       </div>
       {einheiten && einheiten.length > 0 && (
         <div className="form-row">

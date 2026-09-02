@@ -11,7 +11,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
       anbieter: '',
       titel: '',
       betragAngebot: '',
-      betragBeauftragt: '',
       bezahlt: '',
       datum: '',
       gueltigBis: '',
@@ -29,7 +28,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
     onSave({
       ...form,
       betragAngebot: parseFloat(form.betragAngebot) || 0,
-      betragBeauftragt: parseFloat(form.betragBeauftragt) || 0,
       bezahlt: parseFloat(form.bezahlt) || 0,
     });
   }
@@ -48,10 +46,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
         <div className="form-row">
           <label className="form-label">Angebotsbetrag (€)</label>
           <input className="input" type="number" step="0.01" min="0" value={form.betragAngebot} onChange={(e) => set('betragAngebot', e.target.value)} />
-        </div>
-        <div className="form-row">
-          <label className="form-label">Beauftragt (€)</label>
-          <input className="input" type="number" step="0.01" min="0" value={form.betragBeauftragt} onChange={(e) => set('betragBeauftragt', e.target.value)} />
         </div>
       </div>
       <div className="form-row">
@@ -92,11 +86,17 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
   const [showForm, setShowForm] = useState(false);
   const [editAngebot, setEditAngebot] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [sortOrder, setSortOrder] = useState('anbieter-asc');
+  const sortedAngebote = [...angebote].sort((a, b) => {
+    const direction = sortOrder.endsWith('-desc') ? -1 : 1;
+    if (sortOrder.startsWith('amount-')) return direction * ((a.betragAngebot || 0) - (b.betragAngebot || 0));
+    if (sortOrder.startsWith('date-')) return direction * (a.datum || '').localeCompare(b.datum || '');
+    const field = sortOrder.startsWith('title-') ? 'titel' : sortOrder.startsWith('status-') ? 'status' : 'anbieter';
+    return direction * (a[field] || '').localeCompare(b[field] || '', 'de', { sensitivity: 'base' });
+  });
 
   const sumAngebote = angebote.reduce((s, a) => s + (a.betragAngebot || 0), 0);
-  const sumBeauftragt = angebote.reduce((s, a) => s + (a.betragBeauftragt || 0), 0);
   const sumBezahlt = angebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
-  const overpaid = angebote.some((a) => a.bezahlt > a.betragBeauftragt && a.betragBeauftragt > 0);
 
   return (
     <div className="offer-table-wrap">
@@ -105,11 +105,19 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
         <button className="btn btn-primary btn-sm" onClick={() => { setEditAngebot(null); setShowForm(true); }}>
           + Angebot
         </button>
+        <select className="select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} aria-label="Angebote sortieren">
+          <option value="anbieter-asc">Anbieter (A–Z)</option>
+          <option value="anbieter-desc">Anbieter (Z–A)</option>
+          <option value="title-asc">Titel (A–Z)</option>
+          <option value="title-desc">Titel (Z–A)</option>
+          <option value="amount-asc">Betrag (aufsteigend)</option>
+          <option value="amount-desc">Betrag (absteigend)</option>
+          <option value="date-asc">Datum (aufsteigend)</option>
+          <option value="date-desc">Datum (absteigend)</option>
+          <option value="status-asc">Status (A–Z)</option>
+          <option value="status-desc">Status (Z–A)</option>
+        </select>
       </div>
-
-      {overpaid && (
-        <div className="alert alert--warn">⚠ Bezahlt übersteigt beauftragten Betrag!</div>
-      )}
 
       {angebote.length === 0 ? (
         <p className="empty-state">Noch keine Angebote. Klicke auf &ldquo;+ Angebot&rdquo;.</p>
@@ -121,7 +129,6 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
                 <th>Anbieter</th>
                 <th>Titel</th>
                 <th className="text-right">Angebot</th>
-                <th className="text-right">Beauftragt</th>
                 <th className="text-right">Bezahlt</th>
                 <th>Datum</th>
                 <th>Status</th>
@@ -129,13 +136,12 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
               </tr>
             </thead>
             <tbody>
-              {angebote.map((a) => (
+              {sortedAngebote.map((a) => (
                 <tr key={a.id} className={a.status === 'ausgewählt' ? 'row--selected' : a.status === 'abgelehnt' ? 'row--rejected' : ''}>
                   <td><strong>{a.anbieter}</strong></td>
                   <td>{a.titel || '—'}</td>
                   <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
-                  <td className="text-right">{a.betragBeauftragt > 0 ? formatCurrency(a.betragBeauftragt) : '—'}</td>
-                  <td className={`text-right${a.bezahlt > a.betragBeauftragt && a.betragBeauftragt > 0 ? ' warn-text' : ''}`}>
+                  <td className="text-right">
                     {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : '—'}
                   </td>
                   <td>{formatDate(a.datum)}</td>
@@ -153,7 +159,6 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
               <tr className="table-foot">
                 <td colSpan={2}><strong>Summen</strong></td>
                 <td className="text-right"><strong>{formatCurrency(sumAngebote)}</strong></td>
-                <td className="text-right"><strong>{formatCurrency(sumBeauftragt)}</strong></td>
                 <td className="text-right"><strong>{formatCurrency(sumBezahlt)}</strong></td>
                 <td colSpan={3}></td>
               </tr>

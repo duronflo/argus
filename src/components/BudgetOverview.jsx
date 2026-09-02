@@ -1,11 +1,11 @@
 import { formatCurrency } from '../utils/dateUtils';
 
-export default function BudgetOverview({ planned = 0, contracted = 0, paid = 0 }) {
-  const max = Math.max(planned, contracted, paid, 1);
+export default function BudgetOverview({ budget = 0, planned = 0, paid = 0 }) {
+  const max = Math.max(budget, planned, paid, 1);
   const bars = [
-    { label: 'Geplant', value: planned, color: '#64748b' },
-    { label: 'Beauftragt', value: contracted, color: contracted > planned && planned > 0 ? '#dc2626' : '#2563eb' },
-    { label: 'Bezahlt', value: paid, color: paid > planned && planned > 0 ? '#dc2626' : '#16a34a' },
+    { label: 'Gesamtbudget', value: budget, color: '#2563eb' },
+    { label: 'Geplant', value: planned, color: planned > budget && budget > 0 ? '#dc2626' : '#64748b' },
+    { label: 'Bezahlt', value: paid, color: paid > budget && budget > 0 ? '#dc2626' : '#16a34a' },
   ];
 
   return (

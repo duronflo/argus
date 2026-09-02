@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived } from '../utils/calculations';
+import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
 import { formatCurrency, isOverdue } from '../utils/dateUtils';
 import Badge from './Badge';
 import BudgetOverview from './BudgetOverview';
@@ -16,6 +16,7 @@ function KpiCard({ label, value, sub, warn }) {
 
 export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNavigate }) {
   const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
+  const planned = useMemo(() => sumGeplant(gewerke), [gewerke]);
   const effectiveBudget = useMemo(() => calcProjectBudget(projekt, einheiten), [projekt, einheiten]);
   const budgetDerived = useMemo(() => isProjectBudgetDerived(einheiten), [einheiten]);
 
@@ -55,21 +56,21 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
           sub="Noch nicht entschieden"
         />
         <KpiCard
-          label="Beauftragt"
-          value={formatCurrency(stats.sumBeauftragt)}
+          label="Geplant"
+          value={formatCurrency(planned)}
           sub={effectiveBudget > 0 ? `von ${formatCurrency(effectiveBudget)} Budget${budgetDerived ? ' (aus Einheiten)' : ''}` : undefined}
-          warn={effectiveBudget > 0 && stats.sumBeauftragt > effectiveBudget}
+          warn={effectiveBudget > 0 && planned > effectiveBudget}
         />
         <KpiCard
           label="Bezahlt"
           value={formatCurrency(stats.sumBezahlt)}
-          sub={`Offen: ${formatCurrency(stats.sumOffen)}`}
+          sub={planned > 0 ? `Offen: ${formatCurrency(planned - stats.sumBezahlt)}` : undefined}
         />
       </div>
 
       <div className="dashboard-section budget-overview-section">
         <h3 className="subsection-title">Budgetübersicht</h3>
-        <BudgetOverview planned={effectiveBudget} contracted={stats.sumBeauftragt} paid={stats.sumBezahlt} />
+        <BudgetOverview budget={effectiveBudget} planned={planned} paid={stats.sumBezahlt} />
       </div>
 
       {overdueGewerke.length > 0 && (
@@ -84,14 +85,14 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
           <h3 className="subsection-title">Budget pro Einheit</h3>
           <div className="dashboard-units-grid">
             {einheitenStats.map(({ id, name, budget, stats: es }) => {
-              const pct = budget > 0 ? Math.min((es.sumBeauftragt / budget) * 100, 100) : 0;
-              const over = budget > 0 && es.sumBeauftragt > budget;
+              const pct = budget > 0 ? Math.min((es.sumGeplant / budget) * 100, 100) : 0;
+              const over = budget > 0 && es.sumGeplant > budget;
               return (
                 <div key={id} className={`dashboard-unit-card${over ? ' dashboard-unit-card--warn' : ''}`}>
                   <div className="dashboard-unit-name">{name}</div>
                   <div className="dashboard-unit-row">
-                    <span className="dashboard-unit-label">Beauftragt</span>
-                    <span className={`dashboard-unit-value${over ? ' warn-text' : ''}`}>{formatCurrency(es.sumBeauftragt)}</span>
+                    <span className="dashboard-unit-label">Geplant</span>
+                    <span className={`dashboard-unit-value${over ? ' warn-text' : ''}`}>{formatCurrency(es.sumGeplant)}</span>
                   </div>
                   <div className="dashboard-unit-row">
                     <span className="dashboard-unit-label">Bezahlt</span>
@@ -109,7 +110,7 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
                         />
                       </div>
                       <div className="dashboard-unit-budget">
-                        {formatCurrency(es.sumBeauftragt)} / {formatCurrency(budget)}
+                        {formatCurrency(es.sumGeplant)} / {formatCurrency(budget)}
                         {over && <span className="warn-text"> ⚠</span>}
                       </div>
                     </>
@@ -129,8 +130,6 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
               <p className="empty-state">Keine Gewerke angelegt.</p>
             ) : (
               gewerke.map((g) => {
-                const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-                const ausgewaehlt = gwAngebote.find((a) => a.status === 'ausgewählt');
                 const overdue = isOverdue(g.geplantesEnde, g.status);
                 const assignedUnits = einheiten
                   ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
@@ -154,9 +153,9 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
                     </div>
                     <div className="gewerk-overview-right">
                       <Badge status={g.status} small />
-                      {ausgewaehlt && (
+                      {g.geplantBudget > 0 && (
                         <span className="gewerk-overview-amount">
-                          {formatCurrency(ausgewaehlt.betragBeauftragt)}
+                          {formatCurrency(g.geplantBudget)}
                         </span>
                       )}
                     </div>

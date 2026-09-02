@@ -42,13 +42,13 @@ export async function exportExcel(data, filename) {
 
   // ── Sheet 2: Einheiten ────────────────────────────────────────────────────
   const sheetEinheiten = workbook.addWorksheet('Einheiten');
-  headerRow(sheetEinheiten, ['Name', 'Budget (€)', 'Beauftragt (€)', 'Bezahlt (€)', 'Offen (€)', 'Notizen']);
+  headerRow(sheetEinheiten, ['Name', 'Budget (€)', 'Geplant (€)', 'Bezahlt (€)', 'Offen (€)', 'Notizen']);
   einheiten.forEach((eh) => {
     const stats = calcEinheitStats(eh, gewerke, angebote);
     sheetEinheiten.addRow([
       eh.name,
       currency(eh.budget),
-      currency(stats.sumBeauftragt),
+      currency(stats.sumGeplant),
       currency(stats.sumBezahlt),
       currency(stats.sumOffen),
       eh.notizen || '',
@@ -60,6 +60,7 @@ export async function exportExcel(data, filename) {
   const sheetGewerke = workbook.addWorksheet('Gewerke');
   headerRow(sheetGewerke, [
     'Name', 'Kategorie', 'Status',
+    'Geplantes Budget (€)',
     'Geplanter Start', 'Geplantes Ende',
     'Tatsächlicher Start', 'Tatsächliches Ende',
     'Zugeordnete Einheiten', 'Notizen',
@@ -73,6 +74,7 @@ export async function exportExcel(data, filename) {
       g.name,
       g.kategorie || '',
       g.status || '',
+      currency(g.geplantBudget),
       g.geplanterStart || '',
       g.geplantesEnde || '',
       g.tatsaechlicherStart || '',
@@ -87,7 +89,7 @@ export async function exportExcel(data, filename) {
   const sheetAngebote = workbook.addWorksheet('Angebote');
   headerRow(sheetAngebote, [
     'Gewerk', 'Anbieter', 'Titel',
-    'Angebotsbetrag (€)', 'Beauftragt (€)', 'Bezahlt (€)', 'Offen (€)',
+    'Angebotsbetrag (€)', 'Bezahlt (€)',
     'Status', 'Datum', 'Gültig bis', 'Notiz',
   ]);
   angebote.forEach((a) => {
@@ -97,9 +99,7 @@ export async function exportExcel(data, filename) {
       a.anbieter || '',
       a.titel || '',
       currency(a.betragAngebot),
-      currency(a.betragBeauftragt),
       currency(a.bezahlt),
-      currency(a.betragBeauftragt) - currency(a.bezahlt),
       a.status || '',
       a.datum || '',
       a.gueltigBis || '',

@@ -344,29 +344,6 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,.04);
 }
 
-/* --- Gewerk overview list (Dashboard) ---------------------- */
-.gewerk-overview-list { display: flex; flex-direction: column; gap: 6px; }
-
-.gewerk-overview-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
-  transition: background 0.1s;
-  gap: 8px;
-}
-
-.gewerk-overview-item:hover { background: #f9fafb; }
-
-.gewerk-overview-main { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
-.gewerk-overview-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.gewerk-overview-name { font-weight: 500; font-size: 13px; }
-.gewerk-overview-right { display: flex; align-items: center; gap: 8px; }
-.gewerk-overview-amount { font-size: 12px; font-weight: 600; color: #374151; }
-
 /* --- Category tag (Gewerk Kategorie) ----------------------- */
 .category-tag {
   display: inline-block;
@@ -409,6 +386,36 @@ body {
   gap: 8px;
   margin-bottom: 16px;
 }
+
+.status-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.status-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  padding: 5px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.status-filter-item:has(input:checked) {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.status-filter-item input { cursor: pointer; }
 
 .gewerke-grid {
   display: grid;
@@ -948,14 +955,6 @@ body {
   font-size: 11px;
   color: #9ca3af;
   margin-top: 4px;
-}
-
-/* --- Gewerk overview units (dashboard) -------------------- */
-.gewerk-overview-units {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 3px;
 }
 
 /* Loading state */

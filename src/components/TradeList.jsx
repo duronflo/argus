@@ -24,7 +24,7 @@ export default function TradeList({
   onReorder,
 }) {
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatuses, setFilterStatuses] = useState([]);
   const [filterEinheit, setFilterEinheit] = useState('');
   const [sortOrder, setSortOrder] = useState('custom');
   const [draggedId, setDraggedId] = useState(null);
@@ -35,7 +35,7 @@ export default function TradeList({
   const filtered = gewerke.filter((g) => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase()) ||
       g.kategorie.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus ? g.status === filterStatus : true;
+    const matchStatus = filterStatuses.length > 0 ? filterStatuses.includes(g.status) : true;
     const matchEinheit = filterEinheit
       ? (g.einheitIds || []).includes(filterEinheit)
       : true;
@@ -59,6 +59,12 @@ export default function TradeList({
     setDragOverId(null);
   }
 
+  function toggleStatus(status) {
+    setFilterStatuses((prev) =>
+      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+    );
+  }
+
   return (
     <div className="trade-list">
       <div className="trade-list-header">
@@ -72,16 +78,6 @@ export default function TradeList({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select
-          className="select"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="">Alle Status</option>
-          {['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'].map((s) => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
         <select
           className="select"
           value={sortOrder}
@@ -111,6 +107,23 @@ export default function TradeList({
               <option key={eh.id} value={eh.id}>{eh.name}</option>
             ))}
           </select>
+        )}
+      </div>
+      <div className="status-filter-group" role="group" aria-label="Nach Status filtern">
+        {['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'].map((s) => (
+          <label key={s} className="status-filter-item">
+            <input
+              type="checkbox"
+              checked={filterStatuses.includes(s)}
+              onChange={() => toggleStatus(s)}
+            />
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </label>
+        ))}
+        {filterStatuses.length > 0 && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFilterStatuses([])}>
+            Zurücksetzen
+          </button>
         )}
       </div>
       {sorted.length === 0 ? (

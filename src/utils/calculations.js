@@ -45,9 +45,15 @@ export function calcEinheitStats(einheit, gewerke, angebote) {
   let totalBezahlt = 0;
   unitGewerke.forEach((g) => {
     const anteile = g.einheitAnteile || {};
-    const pct = anteile[einheit.id] != null
-      ? anteile[einheit.id] / 100
-      : 1 / (g.einheitIds.length || 1);
+    const ids = g.einheitIds || [];
+    // Anteile are percentages that always add up to the full planned budget
+    // (100%), regardless of the raw values entered. Normalize against the
+    // sum of all shares for this gewerk so the split never loses or adds
+    // budget compared to the planned figure (geplantBudget).
+    const anteileSum = ids.reduce((s, id) => s + (anteile[id] || 0), 0);
+    const pct = anteileSum > 0
+      ? (anteile[einheit.id] || 0) / anteileSum
+      : 1 / (ids.length || 1);
     const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
     totalGeplant += (g.geplantBudget || 0) * pct;
     totalBezahlt += gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0) * pct;

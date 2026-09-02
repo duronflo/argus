@@ -201,41 +201,4 @@ export const sampleData = {
       notiz: 'Fördermittel BAFA noch offen.',
     },
   ],
-  meilensteine: [
-    {
-      id: 'ms-1',
-      titel: 'Baugenehmigung erhalten',
-      datum: '2025-03-01',
-      status: 'erledigt',
-      gewerkId: '',
-    },
-    {
-      id: 'ms-2',
-      titel: 'Rohbauabnahme',
-      datum: '2025-04-05',
-      status: 'erledigt',
-      gewerkId: '',
-    },
-    {
-      id: 'ms-3',
-      titel: 'Elektroabnahme',
-      datum: '2025-05-20',
-      status: 'offen',
-      gewerkId: 'gw-1',
-    },
-    {
-      id: 'ms-4',
-      titel: 'Badabnahme EG',
-      datum: '2025-06-20',
-      status: 'offen',
-      gewerkId: 'gw-2',
-    },
-    {
-      id: 'ms-5',
-      titel: 'Einzug',
-      datum: '2025-09-01',
-      status: 'offen',
-      gewerkId: '',
-    },
-  ],
 };

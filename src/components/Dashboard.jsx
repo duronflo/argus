@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived } from '../utils/calculations';
-import { formatCurrency, formatDate, daysUntil, isOverdue } from '../utils/dateUtils';
+import { formatCurrency, isOverdue } from '../utils/dateUtils';
 import Badge from './Badge';
+import BudgetOverview from './BudgetOverview';
 
 function KpiCard({ label, value, sub, warn }) {
   return (
@@ -13,7 +14,7 @@ function KpiCard({ label, value, sub, warn }) {
   );
 }
 
-export default function Dashboard({ projekt, gewerke, angebote, meilensteine, einheiten, onNavigate }) {
+export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNavigate }) {
   const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
   const effectiveBudget = useMemo(() => calcProjectBudget(projekt, einheiten), [projekt, einheiten]);
   const budgetDerived = useMemo(() => isProjectBudgetDerived(einheiten), [einheiten]);
@@ -21,15 +22,6 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, ei
   const offeneAngebote = angebote.filter((a) => a.status === 'offen').length;
   const gewerkCount = gewerke.length;
   const overdueGewerke = gewerke.filter((g) => isOverdue(g.geplantesEnde, g.status));
-
-  const upcomingMeilensteine = useMemo(() => {
-    return meilensteine
-      .filter((m) => m.status !== 'erledigt')
-      .map((m) => ({ ...m, days: daysUntil(m.datum) }))
-      .filter((m) => m.days !== null && m.days <= 60)
-      .sort((a, b) => a.days - b.days)
-      .slice(0, 5);
-  }, [meilensteine]);
 
   const gewerkeByStatus = useMemo(() => {
     const map = {};
@@ -73,6 +65,11 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, ei
           value={formatCurrency(stats.sumBezahlt)}
           sub={`Offen: ${formatCurrency(stats.sumOffen)}`}
         />
+      </div>
+
+      <div className="dashboard-section budget-overview-section">
+        <h3 className="subsection-title">Budgetübersicht</h3>
+        <BudgetOverview planned={effectiveBudget} contracted={stats.sumBeauftragt} paid={stats.sumBezahlt} />
       </div>
 
       {overdueGewerke.length > 0 && (
@@ -125,36 +122,6 @@ export default function Dashboard({ projekt, gewerke, angebote, meilensteine, ei
       )}
 
       <div className="dashboard-bottom">
-        <div className="dashboard-section">
-          <h3 className="subsection-title">Nächste Termine & Meilensteine</h3>
-          {upcomingMeilensteine.length === 0 ? (
-            <p className="empty-state">Keine bevorstehenden Termine.</p>
-          ) : (
-            <ul className="milestone-list">
-              {upcomingMeilensteine.map((m) => {
-                const gewerk = m.gewerkId
-                  ? gewerke.find((g) => g.id === m.gewerkId)
-                  : null;
-                const overdue = m.days < 0;
-                return (
-                  <li key={m.id} className={`milestone-item${overdue ? ' milestone-item--overdue' : ''}`}>
-                    <div className="milestone-dot" />
-                    <div className="milestone-content">
-                      <span className="milestone-title">{m.titel}</span>
-                      {gewerk && <span className="milestone-gewerk">{gewerk.name}</span>}
-                    </div>
-                    <span className={`milestone-date${overdue ? ' milestone-date--overdue' : ''}`}>
-                      {overdue ? `${Math.abs(m.days)} Tage überfällig` : m.days === 0 ? 'Heute' : `in ${m.days} Tagen`}
-                      <br />
-                      <span style={{ fontSize: 11, color: '#9ca3af' }}>{formatDate(m.datum)}</span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-
         <div className="dashboard-section">
           <h3 className="subsection-title">Gewerke-Übersicht</h3>
           <div className="gewerk-overview-list">

@@ -26,7 +26,7 @@ function currency(val) {
 }
 
 export async function exportExcel(data, filename) {
-  const { projekt, einheiten = [], gewerke = [], angebote = [], meilensteine = [] } = data;
+  const { projekt, einheiten = [], gewerke = [], angebote = [] } = data;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Argus';
   workbook.created = new Date();
@@ -107,20 +107,6 @@ export async function exportExcel(data, filename) {
     ]);
   });
   autoWidth(sheetAngebote);
-
-  // ── Sheet 5: Meilensteine ─────────────────────────────────────────────────
-  const sheetMeilensteine = workbook.addWorksheet('Meilensteine');
-  headerRow(sheetMeilensteine, ['Titel', 'Datum', 'Status', 'Verknüpftes Gewerk']);
-  meilensteine.forEach((m) => {
-    const gewerk = m.gewerkId ? gewerke.find((g) => g.id === m.gewerkId) : null;
-    sheetMeilensteine.addRow([
-      m.titel || '',
-      m.datum || '',
-      m.status || '',
-      gewerk ? gewerk.name : '',
-    ]);
-  });
-  autoWidth(sheetMeilensteine);
 
   // ── Write & download ──────────────────────────────────────────────────────
   const buffer = await workbook.xlsx.writeBuffer();

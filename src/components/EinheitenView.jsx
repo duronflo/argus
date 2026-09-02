@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { formatCurrency } from '../utils/dateUtils';
 import { calcEinheitStats } from '../utils/calculations';
 import { generateId } from '../utils/dateUtils';
+import BudgetOverview from './BudgetOverview';
 
 function EinheitForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState(
@@ -66,7 +67,6 @@ export default function EinheitenView({
         <div className="einheiten-list">
           {einheiten.map((eh) => {
             const stats = calcEinheitStats(eh, gewerke, angebote);
-            const budgetPct = eh.budget > 0 ? Math.min((stats.sumBeauftragt / eh.budget) * 100, 100) : 0;
             const budgetOver = eh.budget > 0 && stats.sumBeauftragt > eh.budget;
             const unitGewerkeCount = gewerke.filter(
               (g) => g.einheitIds && g.einheitIds.includes(eh.id)
@@ -106,25 +106,11 @@ export default function EinheitenView({
                   </div>
                 </div>
 
-                {eh.budget > 0 && (
-                  <div className="einheit-budget-bar-wrap">
-                    <div className="budget-bar-labels">
-                      <span>Beauftragt: {formatCurrency(stats.sumBeauftragt)}</span>
-                      <span style={{ color: budgetOver ? '#dc2626' : undefined }}>
-                        Budget: {formatCurrency(eh.budget)}{budgetOver && ' ⚠ Überschritten!'}
-                      </span>
-                    </div>
-                    <div className="budget-bar">
-                      <div
-                        className="budget-bar-fill"
-                        style={{
-                          width: `${budgetPct}%`,
-                          background: budgetOver ? '#dc2626' : budgetPct > 80 ? '#d97706' : '#2563eb',
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
+                <BudgetOverview
+                  planned={eh.budget}
+                  contracted={stats.sumBeauftragt}
+                  paid={stats.sumBezahlt}
+                />
               </div>
             );
           })}

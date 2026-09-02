@@ -1,14 +1,11 @@
 # Argus – Bauprojekt-Verwaltung
 
-Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten, Kosten und Zeitplanung für private Bauherren.
+Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten sowie Kosten für private Bauherren.
 
 ## Screenshots
 
 ### Dashboard – Projektübersicht & KPIs
-> Das Dashboard zeigt auf einen Blick: Gesamtbudget, beauftragte und bezahlte Kosten, offene Angebote sowie bevorstehende Meilensteine und Gewerke-Status.
-
-### Zeitplan – Visueller Gantt-Chart
-> Der Zeitplan visualisiert alle Gewerke als Gantt-Balken, gruppiert nach Gewerk-Kategorie. Meilensteine werden als Rauten eingeblendet. Geplant vs. tatsächlich wird farblich unterschieden.
+> Das Dashboard zeigt auf einen Blick: geplantes Budget, beauftragte und bezahlte Kosten, offene Angebote sowie den Gewerke-Status.
 
 ### Gewerke – Kostenverteilung auf Einheiten
 > Pro Gewerk lässt sich die Kostenaufteilung auf die zugewiesenen Einheiten per Schieberegler oder Textfeld in % festlegen. Initial wird gleichmäßig verteilt.
@@ -20,18 +17,17 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten, K
 
 - **Passwortschutz** – Cookie-basiert (100 Tage gültig), Initial-Passwort `0000`, änderbar über „Projekt bearbeiten"
 - **Erweiterbare Kategorien** – Kategorien (Dachdecker, Elektro, …) im Projekt-Dialog verwaltbar (hinzufügen / entfernen)
-- **Zeitplan (Gantt-Chart)** – Visueller Gantt sortiert nach Gewerk-Kategorie, Geplant vs. Tatsächlich, Meilensteine als Rauten; plus klassische Listenansicht
+- **Budgetübersicht** – Geplantes, beauftragtes und bezahltes Budget im direkten Vergleich, auch je Einheit
 - **Kostenverteilung je Einheit** – Pro Gewerk Aufteilung auf Einheiten per Schieberegler + Textbox (%), initial gleichmäßig
 
-- **Dashboard** mit KPI-Karten (Gewerke, Angebote, Beauftragt, Bezahlt) und Übersicht der nächsten Termine
+- **Dashboard** mit KPI-Karten (Gewerke, Angebote, Beauftragt, Bezahlt) und Budgetübersicht
 - **Angebote** – Alle Angebote nach Gewerk gruppiert, filterbar nach Status oder Anbieter/Titel
-- **Zeitplan** – Gewerke-Termine und Meilensteine nach Monat gruppiert, inkl. Überfälligkeitswarnung
 - **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung
 - Ampellogik / Badges für alle Status
 - Warnung wenn bezahlt > beauftragt oder Enddatum überschritten
 - Bestätigungsdialog vor dem Löschen
 - **JSON-Export & JSON-Import** für vollständige Datensicherung und -wiederherstellung
-- **Excel-Export** aller Daten (Projekt, Einheiten, Gewerke, Angebote, Meilensteine) als `.xlsx`
+- **Excel-Export** aller Daten (Projekt, Einheiten, Gewerke, Angebote) als `.xlsx`
 - **Gesamtbudget aus Einheiten-Budgets** – wird automatisch aus den Einheiten abgeleitet
 - Datenhaltung auf dem Server (SQLite), localStorage als Offline-Cache
 

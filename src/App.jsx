@@ -5,7 +5,6 @@ import ProjectHeader from './components/ProjectHeader';
 import ImportExportBar from './components/ImportExportBar';
 import Dashboard from './components/Dashboard';
 import AngeboteView from './components/AngeboteView';
-import TimelineView from './components/TimelineView';
 import GewerkeDetails from './components/GewerkeDetails';
 import EinheitenView from './components/EinheitenView';
 import Modal from './components/Modal';
@@ -19,7 +18,6 @@ const SAVE_DEBOUNCE_MS = 800;
 const NAV_ITEMS = [
   { id: 'dashboard', label: '📊 Dashboard' },
   { id: 'angebote', label: '📋 Angebote' },
-  { id: 'zeitplan', label: '📅 Zeitplan' },
   { id: 'gewerke', label: '🔨 Gewerke' },
   { id: 'einheiten', label: '🏠 Einheiten' },
 ];
@@ -59,6 +57,7 @@ function migrateData(parsed) {
   if (!parsed) return parsed;
   if (!parsed.einheiten) parsed.einheiten = [];
   if (!parsed.kategorien) parsed.kategorien = [...DEFAULT_KATEGORIEN];
+  delete parsed.meilensteine;
   if (!parsed.projekt.password) parsed.projekt = { ...parsed.projekt, password: '0000' };
   if (parsed.gewerke) {
     parsed.gewerke = parsed.gewerke.map((g) => {
@@ -175,7 +174,7 @@ export default function App() {
   // Start with localStorage cache for instant render; server data overwrites it
   const [data, setData] = useState(() => loadFromLocalStorage() || sampleData);
 
-  const { projekt, gewerke, angebote, meilensteine, einheiten, kategorien } = data;
+  const { projekt, gewerke, angebote, einheiten, kategorien } = data;
 
   // Check cookie auth after data is loaded
   useEffect(() => {
@@ -252,17 +251,6 @@ export default function App() {
     updateData({ angebote: angebote.filter((a) => a.id !== id) });
   }
 
-  // --- Meilensteine CRUD ---
-  function addMilestone(ms) {
-    updateData({ meilensteine: [...meilensteine, ms] });
-  }
-  function editMilestone(updated) {
-    updateData({ meilensteine: meilensteine.map((m) => m.id === updated.id ? updated : m) });
-  }
-  function deleteMilestone(id) {
-    updateData({ meilensteine: meilensteine.filter((m) => m.id !== id) });
-  }
-
   // --- Einheiten CRUD ---
   function addEinheit(einheit) {
     updateData({ einheiten: [...einheiten, einheit] });
@@ -289,7 +277,6 @@ export default function App() {
       projekt: imported.projekt,
       gewerke: imported.gewerke,
       angebote: imported.angebote,
-      meilensteine: imported.meilensteine || [],
       einheiten: imported.einheiten || [],
       kategorien: imported.kategorien || [...DEFAULT_KATEGORIEN],
     }));
@@ -303,7 +290,6 @@ export default function App() {
         projekt: { id: generateId('proj'), name: 'Neues Projekt', adresse: '', budget: 0, notizen: '', password: '0000' },
         gewerke: [],
         angebote: [],
-        meilensteine: [],
         einheiten: [],
         kategorien: [...DEFAULT_KATEGORIEN],
       });
@@ -320,7 +306,6 @@ export default function App() {
             projekt={projekt}
             gewerke={gewerke}
             angebote={angebote}
-            meilensteine={meilensteine}
             einheiten={einheiten}
             onNavigate={handleNavigate}
           />
@@ -332,16 +317,6 @@ export default function App() {
             angebote={angebote}
             einheiten={einheiten}
             onNavigate={handleNavigate}
-          />
-        );
-      case 'zeitplan':
-        return (
-          <TimelineView
-            gewerke={gewerke}
-            meilensteine={meilensteine}
-            onAddMilestone={addMilestone}
-            onEditMilestone={editMilestone}
-            onDeleteMilestone={deleteMilestone}
           />
         );
       case 'gewerke':

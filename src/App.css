@@ -182,6 +182,38 @@ body {
   transition: width 0.4s ease;
 }
 
+.budget-overview {
+  display: grid;
+  gap: 8px;
+}
+
+.budget-overview-row {
+  min-width: 0;
+}
+
+.budget-overview-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 3px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.budget-overview-label span:last-child {
+  color: #374151;
+  font-weight: 600;
+}
+
+.budget-overview-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+
 /* --- Content area ----------------------------------------- */
 .content {
   flex: 1;
@@ -1597,4 +1629,3 @@ body {
     display: none;
   }
 }
-

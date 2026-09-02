@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { calcGesamtStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
+import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
 import { formatCurrency } from '../utils/dateUtils';
 import Badge from './Badge';
 import CategoryTag from './CategoryTag';
@@ -31,6 +31,14 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
     });
     return map;
   }, [gewerke]);
+
+  const einheitenStats = useMemo(() => {
+    if (!einheiten || einheiten.length === 0) return [];
+    return einheiten.map((eh) => ({
+      ...eh,
+      stats: calcEinheitStats(eh, gewerke, angebote),
+    }));
+  }, [einheiten, gewerke, angebote]);
 
   return (
     <div className="dashboard">
@@ -64,6 +72,57 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
         <h3 className="subsection-title">Budgetübersicht</h3>
         <BudgetOverview budget={effectiveBudget} planned={planned} paid={stats.sumBezahlt} />
       </div>
+
+      {einheitenStats.length > 0 && (
+        <div className="dashboard-section">
+          <h3 className="subsection-title">Budget pro Einheit</h3>
+          <div className="dashboard-units-grid">
+            {einheitenStats.map(({ id, name, budget, stats: es }) => {
+              const over = budget > 0 && es.sumGeplant > budget;
+              return (
+                <div
+                  key={id}
+                  className={`dashboard-unit-card${over ? ' dashboard-unit-card--warn' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onNavigate('einheiten')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onNavigate('einheiten');
+                    }
+                  }}
+                >
+                  <div className="dashboard-unit-name">{name}</div>
+                  <div className="dashboard-unit-row">
+                    <span className="dashboard-unit-label">Budget</span>
+                    <span className="dashboard-unit-value">{budget > 0 ? formatCurrency(budget) : '—'}</span>
+                  </div>
+                  <div className="dashboard-unit-row">
+                    <span className="dashboard-unit-label">Geplant</span>
+                    <span className={`dashboard-unit-value${over ? ' warn-text' : ''}`}>{formatCurrency(es.sumGeplant)}</span>
+                  </div>
+                  <div className="dashboard-unit-row">
+                    <span className="dashboard-unit-label">Bezahlt</span>
+                    <span className="dashboard-unit-value">{formatCurrency(es.sumBezahlt)}</span>
+                  </div>
+                  {budget > 0 && (
+                    <div className="budget-bar" style={{ marginTop: 6 }}>
+                      <div
+                        className="budget-bar-fill"
+                        style={{
+                          width: `${Math.min((es.sumGeplant / budget) * 100, 100)}%`,
+                          background: over ? '#dc2626' : (es.sumGeplant / budget) * 100 > 80 ? '#d97706' : '#2563eb',
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="dashboard-section">
         <h3 className="subsection-title">Gewerke-Übersicht</h3>

@@ -863,6 +863,57 @@ body {
   color: #111827;
 }
 
+.dashboard-units-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.dashboard-unit-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.dashboard-unit-card:hover {
+  border-color: #93c5fd;
+}
+
+.dashboard-unit-card:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.dashboard-unit-card--warn {
+  border-color: #fbbf24;
+  background: #fffbeb;
+}
+
+.dashboard-unit-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.dashboard-unit-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.dashboard-unit-label {
+  color: #9ca3af;
+}
+
+.dashboard-unit-value {
+  font-weight: 600;
+  color: #111827;
+}
+
 /* --- Einheit checkboxes (form) ---------------------------- */
 .einheit-checkboxes {
   display: flex;

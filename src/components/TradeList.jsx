@@ -16,6 +16,7 @@ export default function TradeList({
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEinheit, setFilterEinheit] = useState('');
+  const [sortOrder, setSortOrder] = useState('name-asc');
 
   const filtered = gewerke.filter((g) => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -25,6 +26,9 @@ export default function TradeList({
       ? (g.einheitIds || []).includes(filterEinheit)
       : true;
     return matchSearch && matchStatus && matchEinheit;
+  }).sort((a, b) => {
+    const direction = sortOrder === 'name-desc' ? -1 : 1;
+    return direction * a.name.localeCompare(b.name, 'de', { sensitivity: 'base' });
   });
 
   return (
@@ -50,6 +54,15 @@ export default function TradeList({
             <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
         </select>
+        <select
+          className="select"
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          aria-label="Gewerke sortieren"
+        >
+          <option value="name-asc">Name (A–Z)</option>
+          <option value="name-desc">Name (Z–A)</option>
+        </select>
         {einheiten && einheiten.length > 0 && (
           <select
             className="select"
@@ -57,7 +70,7 @@ export default function TradeList({
             onChange={(e) => setFilterEinheit(e.target.value)}
           >
             <option value="">Alle Einheiten</option>
-            {einheiten.map((eh) => (
+            {[...einheiten].sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })).map((eh) => (
               <option key={eh.id} value={eh.id}>{eh.name}</option>
             ))}
           </select>

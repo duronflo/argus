@@ -1,14 +1,28 @@
 import { useMemo, useState } from 'react';
 import Badge from './Badge';
-import { formatCurrency, formatDate } from '../utils/dateUtils';
+import CategoryTag from './CategoryTag';
+import { formatCurrency } from '../utils/dateUtils';
 import { calcGesamtStats } from '../utils/calculations';
 
-export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate }) {
+function moveId(ids, draggedId, targetId) {
+  const arr = [...ids];
+  const from = arr.indexOf(draggedId);
+  if (from === -1 || draggedId === targetId) return arr;
+  arr.splice(from, 1);
+  const to = arr.indexOf(targetId);
+  arr.splice(to === -1 ? arr.length : to, 0, draggedId);
+  return arr;
+}
+
+export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate, onReorderGewerke }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEinheit, setFilterEinheit] = useState('');
-  const [sortOrder, setSortOrder] = useState('gewerk-asc');
+  const [sortOrder, setSortOrder] = useState('custom');
+  const [draggedId, setDraggedId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
 
+  const isCustomOrder = sortOrder === 'custom';
   const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
 
   const filtered = useMemo(() => {
@@ -29,23 +43,46 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
   // Group by gewerk
   const grouped = useMemo(() => {
     const map = {};
-    [...filtered].sort((a, b) => {
-      const gewerkA = gewerke.find((g) => g.id === a.gewerkId);
-      const gewerkB = gewerke.find((g) => g.id === b.gewerkId);
-      const direction = sortOrder.endsWith('-desc') ? -1 : 1;
-      if (sortOrder.startsWith('amount-')) return direction * ((a.betragAngebot || 0) - (b.betragAngebot || 0));
-      if (sortOrder.startsWith('date-')) return direction * (a.datum || '').localeCompare(b.datum || '');
-      const field = sortOrder.startsWith('anbieter-') ? 'anbieter' : sortOrder.startsWith('title-') ? 'titel' : sortOrder.startsWith('status-') ? 'status' : null;
-      const fieldA = field ? a[field] || '' : gewerkA?.name || '';
-      const fieldB = field ? b[field] || '' : gewerkB?.name || '';
-      return direction * fieldA.localeCompare(fieldB, 'de', { sensitivity: 'base' });
-    }).forEach((a) => {
+    filtered.forEach((a) => {
       const key = a.gewerkId || '__none__';
       if (!map[key]) map[key] = [];
       map[key].push(a);
     });
-    return Object.entries(map);
-  }, [filtered, gewerke, sortOrder]);
+
+    if (isCustomOrder) {
+      const orderedKeys = [...gewerke.map((g) => g.id), '__none__'];
+      return orderedKeys.filter((k) => map[k]).map((k) => [k, map[k]]);
+    }
+
+    Object.values(map).forEach((items) => {
+      items.sort((a, b) => {
+        const direction = sortOrder.endsWith('-desc') ? -1 : 1;
+        if (sortOrder.startsWith('amount-')) return direction * ((a.betragAngebot || 0) - (b.betragAngebot || 0));
+        const field = sortOrder.startsWith('anbieter-') ? 'anbieter' : sortOrder.startsWith('title-') ? 'titel' : 'status';
+        return direction * (a[field] || '').localeCompare(b[field] || '', 'de', { sensitivity: 'base' });
+      });
+    });
+
+    const entries = Object.entries(map);
+    if (sortOrder.startsWith('gewerk-')) {
+      const direction = sortOrder.endsWith('-desc') ? -1 : 1;
+      entries.sort(([keyA], [keyB]) => {
+        const nameA = gewerke.find((g) => g.id === keyA)?.name || '';
+        const nameB = gewerke.find((g) => g.id === keyB)?.name || '';
+        return direction * nameA.localeCompare(nameB, 'de', { sensitivity: 'base' });
+      });
+    }
+    return entries;
+  }, [filtered, gewerke, sortOrder, isCustomOrder]);
+
+  function handleDropOnGroup(targetGewerkId) {
+    if (draggedId && targetGewerkId && draggedId !== targetGewerkId) {
+      const fullIds = gewerke.map((g) => g.id);
+      onReorderGewerke(moveId(fullIds, draggedId, targetGewerkId));
+    }
+    setDraggedId(null);
+    setDragOverId(null);
+  }
 
   return (
     <div className="angebote-view">
@@ -76,6 +113,7 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
           <option value="abgelehnt">Abgelehnt</option>
         </select>
         <select className="select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} aria-label="Angebote sortieren">
+          <option value="custom">Eigene Reihenfolge (ziehen zum Sortieren)</option>
           <option value="gewerk-asc">Gewerk (A–Z)</option>
           <option value="gewerk-desc">Gewerk (Z–A)</option>
           <option value="anbieter-asc">Anbieter (A–Z)</option>
@@ -84,8 +122,6 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
           <option value="title-desc">Titel (Z–A)</option>
           <option value="amount-asc">Betrag (aufsteigend)</option>
           <option value="amount-desc">Betrag (absteigend)</option>
-          <option value="date-asc">Datum (aufsteigend)</option>
-          <option value="date-desc">Datum (absteigend)</option>
           <option value="status-asc">Status (A–Z)</option>
           <option value="status-desc">Status (Z–A)</option>
         </select>
@@ -107,18 +143,31 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
           const assignedUnits = einheiten && gewerk
             ? einheiten.filter((eh) => (gewerk.einheitIds || []).includes(eh.id))
             : [];
+          const sumGroup = items.reduce((s, a) => s + (a.betragAngebot || 0), 0);
           return (
-            <div key={gewerkId} className="angebote-group">
+            <div
+              key={gewerkId}
+              className={`angebote-group${dragOverId === gewerkId && draggedId && draggedId !== gewerkId ? ' angebote-group--drag-over' : ''}`}
+            >
               <div
                 className="angebote-group-header"
                 onClick={() => gewerk && onNavigate('gewerke', gewerk.id)}
                 style={{ cursor: gewerk ? 'pointer' : undefined }}
+                draggable={isCustomOrder && !!gewerk}
+                onDragStart={(e) => { e.stopPropagation(); setDraggedId(gewerkId); }}
+                onDragOver={(e) => { if (isCustomOrder && gewerk) { e.preventDefault(); setDragOverId(gewerkId); } }}
+                onDragLeave={() => setDragOverId((cur) => (cur === gewerkId ? null : cur))}
+                onDrop={(e) => { if (isCustomOrder && gewerk) { e.preventDefault(); e.stopPropagation(); handleDropOnGroup(gewerkId); } }}
+                onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
               >
+                {isCustomOrder && gewerk && <span className="drag-handle" title="Ziehen zum Sortieren">⠿</span>}
                 <span className="angebote-group-name">{gewerk ? gewerk.name : 'Unbekanntes Gewerk'}</span>
+                {gewerk && <CategoryTag kategorie={gewerk.kategorie} small />}
                 {gewerk && <Badge status={gewerk.status} small />}
                 {assignedUnits.map((eh) => (
                   <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
                 ))}
+                <span className="angebote-group-sum">{formatCurrency(sumGroup)}</span>
                 {gewerk && <span className="angebote-group-nav">→ Details</span>}
               </div>
               <div className="table-wrap">
@@ -129,8 +178,6 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
                       <th>Titel</th>
                       <th className="text-right">Angebot</th>
                       <th className="text-right">Bezahlt</th>
-                      <th>Datum</th>
-                      <th>Gültig bis</th>
                       <th>Status</th>
                       <th>Notiz</th>
                     </tr>
@@ -144,8 +191,6 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate 
                         <td className="text-right">
                           {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : '—'}
                         </td>
-                        <td>{formatDate(a.datum)}</td>
-                        <td>{formatDate(a.gueltigBis)}</td>
                         <td><Badge status={a.status} small /></td>
                         <td className="note-cell">{a.notiz || '—'}</td>
                       </tr>

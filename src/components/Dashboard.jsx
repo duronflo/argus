@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
-import { formatCurrency, isOverdue } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/dateUtils';
 import Badge from './Badge';
+import CategoryTag from './CategoryTag';
 import BudgetOverview from './BudgetOverview';
 
 function KpiCard({ label, value, sub, warn }) {
@@ -22,7 +23,6 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
 
   const offeneAngebote = angebote.filter((a) => a.status === 'offen').length;
   const gewerkCount = gewerke.length;
-  const overdueGewerke = gewerke.filter((g) => isOverdue(g.geplantesEnde, g.status));
 
   const gewerkeByStatus = useMemo(() => {
     const map = {};
@@ -73,23 +73,31 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
         <BudgetOverview budget={effectiveBudget} planned={planned} paid={stats.sumBezahlt} />
       </div>
 
-      {overdueGewerke.length > 0 && (
-        <div className="alert alert--warn">
-          <strong>⚠ Verzögerte Gewerke:</strong>{' '}
-          {overdueGewerke.map((g) => g.name).join(', ')} — Enddatum überschritten!
-        </div>
-      )}
-
       {einheitenStats.length > 0 && (
-        <div className="dashboard-units">
+        <div className="dashboard-section">
           <h3 className="subsection-title">Budget pro Einheit</h3>
           <div className="dashboard-units-grid">
             {einheitenStats.map(({ id, name, budget, stats: es }) => {
-              const pct = budget > 0 ? Math.min((es.sumGeplant / budget) * 100, 100) : 0;
               const over = budget > 0 && es.sumGeplant > budget;
               return (
-                <div key={id} className={`dashboard-unit-card${over ? ' dashboard-unit-card--warn' : ''}`}>
+                <div
+                  key={id}
+                  className={`dashboard-unit-card${over ? ' dashboard-unit-card--warn' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onNavigate('einheiten')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onNavigate('einheiten');
+                    }
+                  }}
+                >
                   <div className="dashboard-unit-name">{name}</div>
+                  <div className="dashboard-unit-row">
+                    <span className="dashboard-unit-label">Budget</span>
+                    <span className="dashboard-unit-value">{budget > 0 ? formatCurrency(budget) : '—'}</span>
+                  </div>
                   <div className="dashboard-unit-row">
                     <span className="dashboard-unit-label">Geplant</span>
                     <span className={`dashboard-unit-value${over ? ' warn-text' : ''}`}>{formatCurrency(es.sumGeplant)}</span>
@@ -99,21 +107,15 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
                     <span className="dashboard-unit-value">{formatCurrency(es.sumBezahlt)}</span>
                   </div>
                   {budget > 0 && (
-                    <>
-                      <div className="budget-bar" style={{ marginTop: 6 }}>
-                        <div
-                          className="budget-bar-fill"
-                          style={{
-                            width: `${pct}%`,
-                            background: over ? '#dc2626' : pct > 80 ? '#d97706' : '#2563eb',
-                          }}
-                        />
-                      </div>
-                      <div className="dashboard-unit-budget">
-                        {formatCurrency(es.sumGeplant)} / {formatCurrency(budget)}
-                        {over && <span className="warn-text"> ⚠</span>}
-                      </div>
-                    </>
+                    <div className="budget-bar" style={{ marginTop: 6 }}>
+                      <div
+                        className="budget-bar-fill"
+                        style={{
+                          width: `${Math.min((es.sumGeplant / budget) * 100, 100)}%`,
+                          background: over ? '#dc2626' : (es.sumGeplant / budget) * 100 > 80 ? '#d97706' : '#2563eb',
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               );
@@ -122,48 +124,47 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
         </div>
       )}
 
-      <div className="dashboard-bottom">
-        <div className="dashboard-section">
-          <h3 className="subsection-title">Gewerke-Übersicht</h3>
-          <div className="gewerk-overview-list">
-            {gewerke.length === 0 ? (
-              <p className="empty-state">Keine Gewerke angelegt.</p>
-            ) : (
-              gewerke.map((g) => {
-                const overdue = isOverdue(g.geplantesEnde, g.status);
-                const assignedUnits = einheiten
-                  ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
-                  : [];
-                return (
-                  <div
-                    key={g.id}
-                    className={`gewerk-overview-item${overdue ? ' gewerk-overview-item--overdue' : ''}`}
-                    onClick={() => onNavigate('gewerke', g.id)}
-                  >
-                    <div className="gewerk-overview-main">
+      <div className="dashboard-section">
+        <h3 className="subsection-title">Gewerke-Übersicht</h3>
+        <div className="gewerk-overview-list">
+          {gewerke.length === 0 ? (
+            <p className="empty-state">Keine Gewerke angelegt.</p>
+          ) : (
+            gewerke.map((g) => {
+              const assignedUnits = einheiten
+                ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
+                : [];
+              return (
+                <div
+                  key={g.id}
+                  className="gewerk-overview-item"
+                  onClick={() => onNavigate('gewerke', g.id)}
+                >
+                  <div className="gewerk-overview-main">
+                    <div className="gewerk-overview-name-row">
                       <span className="gewerk-overview-name">{g.name}</span>
-                      <span className="gewerk-overview-kat">{g.kategorie}</span>
-                      {assignedUnits.length > 0 && (
-                        <div className="gewerk-overview-units">
-                          {assignedUnits.map((eh) => (
-                            <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
-                          ))}
-                        </div>
-                      )}
+                      <CategoryTag kategorie={g.kategorie} small />
                     </div>
-                    <div className="gewerk-overview-right">
-                      <Badge status={g.status} small />
-                      {g.geplantBudget > 0 && (
-                        <span className="gewerk-overview-amount">
-                          {formatCurrency(g.geplantBudget)}
-                        </span>
-                      )}
-                    </div>
+                    {assignedUnits.length > 0 && (
+                      <div className="gewerk-overview-units">
+                        {assignedUnits.map((eh) => (
+                          <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                );
-              })
-            )}
-          </div>
+                  <div className="gewerk-overview-right">
+                    <Badge status={g.status} small />
+                    {g.geplantBudget > 0 && (
+                      <span className="gewerk-overview-amount">
+                        {formatCurrency(g.geplantBudget)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

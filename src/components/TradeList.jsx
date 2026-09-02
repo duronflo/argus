@@ -1,8 +1,17 @@
 import { useState } from 'react';
 import Badge from './Badge';
-import { isOverdue } from '../utils/dateUtils';
+import CategoryTag from './CategoryTag';
+import { formatCurrency } from '../utils/dateUtils';
 
-const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
+function moveId(ids, draggedId, targetId) {
+  const arr = [...ids];
+  const from = arr.indexOf(draggedId);
+  if (from === -1 || draggedId === targetId) return arr;
+  arr.splice(from, 1);
+  const to = arr.indexOf(targetId);
+  arr.splice(to === -1 ? arr.length : to, 0, draggedId);
+  return arr;
+}
 
 export default function TradeList({
   gewerke,
@@ -12,11 +21,16 @@ export default function TradeList({
   onSelect,
   onAdd,
   onDelete,
+  onReorder,
 }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEinheit, setFilterEinheit] = useState('');
-  const [sortOrder, setSortOrder] = useState('name-asc');
+  const [sortOrder, setSortOrder] = useState('custom');
+  const [draggedId, setDraggedId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
+  const isCustomOrder = sortOrder === 'custom';
 
   const filtered = gewerke.filter((g) => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -26,13 +40,24 @@ export default function TradeList({
       ? (g.einheitIds || []).includes(filterEinheit)
       : true;
     return matchSearch && matchStatus && matchEinheit;
-  }).sort((a, b) => {
+  });
+
+  const sorted = isCustomOrder ? filtered : [...filtered].sort((a, b) => {
     const direction = sortOrder.endsWith('-desc') ? -1 : 1;
     if (sortOrder.startsWith('budget-')) return direction * ((a.geplantBudget || 0) - (b.geplantBudget || 0));
     if (sortOrder.startsWith('units-')) return direction * ((a.einheitIds || []).length - (b.einheitIds || []).length);
     const field = sortOrder.startsWith('category-') ? 'kategorie' : sortOrder.startsWith('status-') ? 'status' : 'name';
     return direction * a[field].localeCompare(b[field], 'de', { sensitivity: 'base' });
   });
+
+  function handleDrop(targetId) {
+    if (draggedId && draggedId !== targetId) {
+      const fullIds = gewerke.map((g) => g.id);
+      onReorder(moveId(fullIds, draggedId, targetId));
+    }
+    setDraggedId(null);
+    setDragOverId(null);
+  }
 
   return (
     <div className="trade-list">
@@ -53,7 +78,7 @@ export default function TradeList({
           onChange={(e) => setFilterStatus(e.target.value)}
         >
           <option value="">Alle Status</option>
-          {GEWERK_STATUSES.map((s) => (
+          {['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'].map((s) => (
             <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
         </select>
@@ -63,6 +88,7 @@ export default function TradeList({
           onChange={(e) => setSortOrder(e.target.value)}
           aria-label="Gewerke sortieren"
         >
+          <option value="custom">Eigene Reihenfolge (ziehen zum Sortieren)</option>
           <option value="name-asc">Name (A–Z)</option>
           <option value="name-desc">Name (Z–A)</option>
           <option value="category-asc">Kategorie (A–Z)</option>
@@ -87,36 +113,37 @@ export default function TradeList({
           </select>
         )}
       </div>
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <p className="empty-state">Keine Gewerke gefunden.</p>
       ) : (
-        <ul className="trade-items">
-          {filtered.map((g) => {
+        <div className="gewerke-grid">
+          {sorted.map((g) => {
             const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-            const overdue = isOverdue(g.geplantesEnde, g.status);
+            const bezahlt = gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
             const assignedUnits = einheiten
               ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
               : [];
             return (
-              <li
+              <div
                 key={g.id}
-                className={`trade-item${selectedId === g.id ? ' trade-item--active' : ''}${overdue ? ' trade-item--overdue' : ''}`}
+                className={`gewerke-card${selectedId === g.id ? ' gewerke-card--active' : ''}${draggedId === g.id ? ' gewerke-card--dragging' : ''}${dragOverId === g.id && draggedId && draggedId !== g.id ? ' gewerke-card--drag-over' : ''}`}
                 onClick={() => onSelect(g.id)}
+                draggable={isCustomOrder}
+                onDragStart={() => setDraggedId(g.id)}
+                onDragOver={(e) => { if (isCustomOrder) { e.preventDefault(); setDragOverId(g.id); } }}
+                onDragLeave={() => setDragOverId((cur) => (cur === g.id ? null : cur))}
+                onDrop={(e) => { if (isCustomOrder) { e.preventDefault(); handleDrop(g.id); } }}
+                onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
               >
-                <div className="trade-item-main">
-                  <span className="trade-item-name">{g.name}</span>
-                  <span className="trade-item-kat">{g.kategorie}</span>
-                  {assignedUnits.length > 0 && (
-                    <div className="trade-item-units">
-                      {assignedUnits.map((eh) => (
-                        <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
-                      ))}
+                <div className="gewerke-card-header">
+                  {isCustomOrder && <span className="drag-handle" title="Ziehen zum Sortieren">⠿</span>}
+                  <div className="gewerke-card-title">
+                    <span className="gewerke-card-name">{g.name}</span>
+                    <div className="gewerke-card-tags">
+                      <CategoryTag kategorie={g.kategorie} small />
+                      <Badge status={g.status} small />
                     </div>
-                  )}
-                </div>
-                <div className="trade-item-right">
-                  <Badge status={g.status} small />
-                  <span className="trade-item-count">{gwAngebote.length} Ang.</span>
+                  </div>
                   <button
                     className="btn-icon btn-icon--danger"
                     title="Löschen"
@@ -125,10 +152,33 @@ export default function TradeList({
                     🗑
                   </button>
                 </div>
-              </li>
+
+                {assignedUnits.length > 0 && (
+                  <div className="gewerke-card-units">
+                    {assignedUnits.map((eh) => (
+                      <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="gewerke-card-stats">
+                  <div className="gewerke-card-stat">
+                    <span className="gewerke-card-stat-label">Geplant</span>
+                    <span className="gewerke-card-stat-value">{g.geplantBudget > 0 ? formatCurrency(g.geplantBudget) : '—'}</span>
+                  </div>
+                  <div className="gewerke-card-stat">
+                    <span className="gewerke-card-stat-label">Bezahlt</span>
+                    <span className="gewerke-card-stat-value">{bezahlt > 0 ? formatCurrency(bezahlt) : '—'}</span>
+                  </div>
+                  <div className="gewerke-card-stat">
+                    <span className="gewerke-card-stat-label">Angebote</span>
+                    <span className="gewerke-card-stat-value">{gwAngebote.length}</span>
+                  </div>
+                </div>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
     </div>
   );

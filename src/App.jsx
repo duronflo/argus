@@ -53,6 +53,11 @@ function loadFromLocalStorage() {
   return null;
 }
 
+// Fields removed from the data model – kept here so old, previously saved
+// projects lose these unused values on load instead of hanging around forever.
+const REMOVED_GEWERK_FIELDS = ['geplanterStart', 'geplantesEnde', 'tatsaechlicherStart', 'tatsaechlichesEnde'];
+const REMOVED_ANGEBOT_FIELDS = ['datum', 'gueltigBis'];
+
 function migrateData(parsed) {
   if (!parsed) return parsed;
   if (!parsed.einheiten) parsed.einheiten = [];
@@ -63,16 +68,25 @@ function migrateData(parsed) {
     parsed.gewerke = parsed.gewerke.map((g) => {
       const g2 = g.einheitIds ? g : { ...g, einheitIds: [] };
       const g3 = g2.geplantBudget == null ? { ...g2, geplantBudget: 0 } : g2;
-      if (!g3.einheitAnteile) {
-        const ids = g3.einheitIds || [];
+      const g4 = { ...g3 };
+      REMOVED_GEWERK_FIELDS.forEach((f) => delete g4[f]);
+      if (!g4.einheitAnteile) {
+        const ids = g4.einheitIds || [];
         const pct = ids.length > 0 ? Math.round(100 / ids.length) : 0;
         const anteile = {};
         ids.forEach((id, i) => {
           anteile[id] = i === ids.length - 1 ? 100 - pct * (ids.length - 1) : pct;
         });
-        return { ...g3, einheitAnteile: anteile };
+        return { ...g4, einheitAnteile: anteile };
       }
-      return g3;
+      return g4;
+    });
+  }
+  if (parsed.angebote) {
+    parsed.angebote = parsed.angebote.map((a) => {
+      const a2 = { ...a };
+      REMOVED_ANGEBOT_FIELDS.forEach((f) => delete a2[f]);
+      return a2;
     });
   }
   return parsed;
@@ -240,6 +254,12 @@ export default function App() {
     });
     if (selectedGewerkId === id) setSelectedGewerkId(null);
   }
+  function reorderGewerke(idsInOrder) {
+    const byId = new Map(gewerke.map((g) => [g.id, g]));
+    const reordered = idsInOrder.map((id) => byId.get(id)).filter(Boolean);
+    const missing = gewerke.filter((g) => !idsInOrder.includes(g.id));
+    updateData({ gewerke: [...reordered, ...missing] });
+  }
 
   // --- Angebote CRUD ---
   function addAngebot(angebot) {
@@ -318,6 +338,7 @@ export default function App() {
             angebote={angebote}
             einheiten={einheiten}
             onNavigate={handleNavigate}
+            onReorderGewerke={reorderGewerke}
           />
         );
       case 'gewerke':
@@ -332,6 +353,7 @@ export default function App() {
             onAddGewerk={addGewerk}
             onEditGewerk={editGewerk}
             onDeleteGewerk={deleteGewerk}
+            onReorderGewerke={reorderGewerke}
             onAddAngebot={addAngebot}
             onEditAngebot={editAngebot}
             onDeleteAngebot={deleteAngebot}
@@ -400,9 +422,6 @@ export default function App() {
           </button>
           <ProjectHeader
             projekt={projekt}
-            angebote={angebote}
-            einheiten={einheiten}
-            gewerke={gewerke}
             onEdit={() => setShowProjectForm(true)}
           />
         </header>

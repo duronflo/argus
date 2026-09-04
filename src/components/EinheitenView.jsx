@@ -6,6 +6,7 @@ import { generateId } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
 import PieChart from './PieChart';
 import { colorForKey } from '../utils/colors';
+import TradeDetail from './TradeDetail';
 
 function EinheitForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState(
@@ -41,12 +42,17 @@ export default function EinheitenView({
   onAddEinheit,
   onEditEinheit,
   onDeleteEinheit,
-  onNavigate,
+  onEditGewerk,
+  onAddAngebot,
+  onEditAngebot,
+  onDeleteAngebot,
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortOrder, setSortOrder] = useState('name-asc');
+  const [tradeSortOrder, setTradeSortOrder] = useState('planned-desc');
+  const [selectedGewerkId, setSelectedGewerkId] = useState(null);
   const sortedEinheiten = [...einheiten].sort((a, b) => {
     const direction = sortOrder === 'name-desc' ? -1 : 1;
     if (sortOrder.startsWith('budget-')) return direction * ((a.budget || 0) - (b.budget || 0));
@@ -85,12 +91,24 @@ export default function EinheitenView({
         .map((g) => ({
           gewerk: g,
           stats: calcEinheitGewerkStats(eh.id, g, angebote),
-        }))
-        .sort((a, b) => b.stats.sumGeplant - a.stats.sumGeplant);
+        }));
       result.set(eh.id, trades);
     });
     return result;
   }, [einheiten, gewerke, angebote]);
+
+  function sortTrades(trades) {
+    const direction = tradeSortOrder.endsWith('-desc') ? -1 : 1;
+    return [...trades].sort((a, b) => {
+      if (tradeSortOrder.startsWith('planned-')) {
+        return direction * (a.stats.sumGeplant - b.stats.sumGeplant);
+      }
+      if (tradeSortOrder.startsWith('paid-')) {
+        return direction * (a.stats.sumBezahlt - b.stats.sumBezahlt);
+      }
+      return direction * a.gewerk.name.localeCompare(b.gewerk.name, 'de', { sensitivity: 'base' });
+    });
+  }
 
   function handleAdd(data) {
     onAddEinheit({ ...data, id: generateId('eh') });
@@ -136,7 +154,7 @@ export default function EinheitenView({
           {sortedEinheiten.map((eh) => {
             const stats = calcEinheitStats(eh, gewerke, angebote);
             const budgetOver = eh.budget > 0 && stats.sumGeplant > eh.budget;
-            const trades = unitGewerke.get(eh.id) || [];
+            const trades = sortTrades(unitGewerke.get(eh.id) || []);
             const maxTradePlanned = trades.reduce((max, item) => Math.max(max, item.stats.sumGeplant), 0);
 
             return (
@@ -181,8 +199,20 @@ export default function EinheitenView({
 
                 <div className="einheit-trades">
                   <div className="einheit-trades-header">
-                    <h4 className="subsection-title">Teuerste Gewerke</h4>
-                    <span className="einheit-trades-hint">Klicken zum Bearbeiten</span>
+                    <h4 className="subsection-title">Gewerke</h4>
+                    <select
+                      className="select select-sm einheit-trades-sort"
+                      value={tradeSortOrder}
+                      onChange={(e) => setTradeSortOrder(e.target.value)}
+                      aria-label={`${eh.name}: Gewerke sortieren`}
+                    >
+                      <option value="planned-desc">Geplant (absteigend)</option>
+                      <option value="planned-asc">Geplant (aufsteigend)</option>
+                      <option value="paid-desc">Bezahlt (absteigend)</option>
+                      <option value="paid-asc">Bezahlt (aufsteigend)</option>
+                      <option value="name-asc">Name (A–Z)</option>
+                      <option value="name-desc">Name (Z–A)</option>
+                    </select>
                   </div>
                   {trades.length === 0 ? (
                     <p className="empty-state einheit-trades-empty">Keine Gewerke zugewiesen.</p>
@@ -197,8 +227,8 @@ export default function EinheitenView({
                             type="button"
                             className="einheit-trade-row"
                             key={gewerk.id}
-                            onClick={() => onNavigate?.('gewerke', gewerk.id)}
-                            title="Gewerk öffnen und Einheiten-Anteile bearbeiten"
+                            onClick={() => setSelectedGewerkId(gewerk.id)}
+                            title="Gewerk öffnen und bearbeiten"
                           >
                             <span className="einheit-trade-label">
                               <span className="einheit-trade-name">{gewerk.name}</span>
@@ -217,6 +247,29 @@ export default function EinheitenView({
             );
           })}
         </div>
+      )}
+
+      {selectedGewerkId && gewerke.some((g) => g.id === selectedGewerkId) && (
+        <Modal
+          title={gewerke.find((g) => g.id === selectedGewerkId).name}
+          onClose={() => setSelectedGewerkId(null)}
+          width={820}
+        >
+          <TradeDetail
+            gewerk={gewerke.find((g) => g.id === selectedGewerkId)}
+            angebote={angebote.filter((a) => a.gewerkId === selectedGewerkId)}
+            einheiten={einheiten}
+            kategorien={[]}
+            onEditGewerk={onEditGewerk}
+            onAddAngebot={(data) => onAddAngebot({
+              ...data,
+              id: generateId('ao'),
+              gewerkId: selectedGewerkId,
+            })}
+            onEditAngebot={onEditAngebot}
+            onDeleteAngebot={onDeleteAngebot}
+          />
+        </Modal>
       )}
 
       {showAddForm && (

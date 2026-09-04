@@ -909,9 +909,11 @@ body {
   font-size: 13px;
 }
 
-.einheit-trades-hint {
-  font-size: 10px;
-  color: #9ca3af;
+.einheit-trades-sort {
+  width: auto;
+  min-width: 160px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 .einheit-trade-list {
@@ -977,6 +979,12 @@ body {
 
 .einheit-trade-row:hover .einheit-trade-bar-fill {
   background: #1d4ed8;
+}
+
+.einheit-trade-row:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 4px;
+  border-radius: 3px;
 }
 
 .einheit-trades-empty {

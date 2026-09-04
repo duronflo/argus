@@ -366,16 +366,31 @@ body {
 
 /* --- Category tag (Gewerk Kategorie) ----------------------- */
 .category-tag {
-  display: inline-block;
-  border: 1px solid transparent;
-  border-radius: 99px;
-  padding: 2px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 0;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.category-tag--sm { font-size: 11px; padding: 1px 7px; }
+.category-tag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.category-tag--sm { font-size: 11px; }
+.category-tag--sm .category-tag-dot { width: 7px; height: 7px; }
+
+.status-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
 
 /* --- Drag handle (manual reordering) ----------------------- */
 .drag-handle {
@@ -590,7 +605,9 @@ body {
 .angebote-group-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
+  row-gap: 6px;
   padding: 10px 12px;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -598,7 +615,7 @@ body {
   border-bottom: none;
 }
 
-.angebote-group-name { font-weight: 600; font-size: 14px; color: #111827; flex: 1; }
+.angebote-group-name { font-weight: 600; font-size: 14px; color: #111827; flex: 1 1 180px; min-width: 0; }
 .angebote-group-sum { font-size: 13px; font-weight: 600; color: #374151; flex-shrink: 0; }
 .angebote-group-nav { font-size: 12px; color: #2563eb; margin-left: auto; }
 
@@ -941,13 +958,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 4px;
   font-size: 12px;
 }
 
 .einheit-trade-name {
-  flex: 1;
+  flex: 1 1 120px;
   min-width: 0;
   overflow: hidden;
   color: #374151;

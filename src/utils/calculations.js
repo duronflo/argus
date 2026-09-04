@@ -4,16 +4,33 @@ export function sumAngebote(angebote) {
   return angebote.reduce((sum, a) => sum + (a.betragAngebot || 0), 0);
 }
 
-export function sumGeplant(gewerke) {
-  return gewerke.reduce((sum, g) => sum + (g.geplantBudget || 0), 0);
-}
-
 export function sumBeauftragt(angebote) {
   return angebote.reduce((sum, a) => sum + (a.betragBeauftragt || 0), 0);
 }
 
 export function sumBezahlt(angebote) {
   return angebote.reduce((sum, a) => sum + (a.bezahlt || 0), 0);
+}
+
+export function sumGewerkBezahlt(gewerk, angebote = []) {
+  return angebote
+    .filter((a) => a.gewerkId === gewerk.id)
+    .reduce((sum, a) => sum + (a.bezahlt || 0), 0);
+}
+
+/**
+ * Uses the paid amount as the effective planned amount once a trade has actual
+ * costs. This releases the difference between the original estimate and the
+ * amount that was actually paid back into the available budget.
+ */
+export function getEffektivesGewerkBudget(gewerk, angebote = []) {
+  const geplant = gewerk.geplantBudget || 0;
+  const bezahlt = sumGewerkBezahlt(gewerk, angebote);
+  return bezahlt > 0 ? bezahlt : geplant;
+}
+
+export function sumGeplant(gewerke, angebote = []) {
+  return gewerke.reduce((sum, g) => sum + getEffektivesGewerkBudget(g, angebote), 0);
 }
 
 export function sumOffen(angebote) {
@@ -37,15 +54,14 @@ export function calcEinheitGewerkStats(einheitId, gewerk, angebote) {
   const anteil = anteileSum > 0
     ? (anteile[einheitId] || 0) / anteileSum
     : 1 / (ids.length || 1);
-  const gwAngebote = angebote.filter((a) => a.gewerkId === gewerk.id);
-  const sumGeplant = (gewerk.geplantBudget || 0) * anteil;
-  const sumBezahlt = gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0) * anteil;
+  const sumGeplant = getEffektivesGewerkBudget(gewerk, angebote) * anteil;
+  const sumBezahlt = sumGewerkBezahlt(gewerk, angebote) * anteil;
 
   return {
     anteil,
     sumGeplant,
     sumBezahlt,
-    sumOffen: sumGeplant - sumBezahlt,
+    sumOffen: Math.max(sumGeplant - sumBezahlt, 0),
   };
 }
 

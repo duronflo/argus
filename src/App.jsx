@@ -365,6 +365,7 @@ export default function App() {
             einheiten={einheiten}
             gewerke={gewerke}
             angebote={angebote}
+            kategorien={kategorien || []}
             onAddEinheit={addEinheit}
             onEditEinheit={editEinheit}
             onDeleteEinheit={deleteEinheit}

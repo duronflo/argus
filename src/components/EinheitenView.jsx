@@ -39,6 +39,7 @@ export default function EinheitenView({
   einheiten,
   gewerke,
   angebote,
+  kategorien,
   onAddEinheit,
   onEditEinheit,
   onDeleteEinheit,
@@ -259,7 +260,7 @@ export default function EinheitenView({
             gewerk={gewerke.find((g) => g.id === selectedGewerkId)}
             angebote={angebote.filter((a) => a.gewerkId === selectedGewerkId)}
             einheiten={einheiten}
-            kategorien={[]}
+            kategorien={kategorien}
             onEditGewerk={onEditGewerk}
             onAddAngebot={(data) => onAddAngebot({
               ...data,

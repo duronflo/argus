@@ -233,9 +233,13 @@ export default function EinheitenView({
                             title="Gewerk öffnen und bearbeiten"
                           >
                             <span className="einheit-trade-label">
-                              <span className="einheit-trade-name">{gewerk.name}</span>
-                              <span className="einheit-trade-amount">{formatCurrency(tradeStats.sumGeplant)}</span>
-                              <Badge status={gewerk.status} small />
+                              <span className="einheit-trade-heading">
+                                <span className="einheit-trade-name">{gewerk.name}</span>
+                                <span className="einheit-trade-amount">{formatCurrency(tradeStats.sumGeplant)}</span>
+                              </span>
+                              <span className="einheit-trade-status">
+                                <Badge status={gewerk.status} small />
+                              </span>
                             </span>
                             <span className="einheit-trade-bar">
                               <span

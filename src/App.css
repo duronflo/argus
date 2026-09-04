@@ -955,17 +955,21 @@ body {
 }
 
 .einheit-trade-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: block;
   margin-bottom: 4px;
   font-size: 12px;
 }
 
+.einheit-trade-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
 .einheit-trade-name {
-  flex: 1 1 120px;
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   color: #374151;
@@ -977,6 +981,11 @@ body {
   flex-shrink: 0;
   color: #111827;
   font-weight: 600;
+}
+
+.einheit-trade-status {
+  display: flex;
+  margin-top: 5px;
 }
 
 .einheit-trade-bar {

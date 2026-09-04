@@ -29,7 +29,7 @@ export default function TradeList({
   const [filterStatuses, setFilterStatuses] = useState([]);
   const [filterEinheit, setFilterEinheit] = useState('');
   const [sortOrder, setSortOrder] = useState('custom');
-  const [viewMode, setViewMode] = useState('tiles');
+  const [viewMode, setViewMode] = useState('list');
   const [draggedId, setDraggedId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
 

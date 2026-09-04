@@ -202,6 +202,26 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,.04);
 }
 
+.einheiten-budget-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.einheiten-budget-chart {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+}
+
+.einheiten-budget-chart-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
 /* --- Pie / donut chart (budget distribution) --------------- */
 .pie-chart-wrap {
   display: flex;
@@ -868,6 +888,108 @@ body {
   font-size: 14px;
   font-weight: 600;
   color: #111827;
+}
+
+.einheit-trades {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.einheit-trades-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.einheit-trades-header .subsection-title {
+  margin: 0;
+  font-size: 13px;
+}
+
+.einheit-trades-sort {
+  width: auto;
+  min-width: 160px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.einheit-trade-list {
+  display: grid;
+  gap: 9px;
+}
+
+.einheit-trade-row {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.einheit-trade-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.einheit-trade-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #374151;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.einheit-trade-amount {
+  flex-shrink: 0;
+  color: #111827;
+  font-weight: 600;
+}
+
+.einheit-trade-bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  background: #e5e7eb;
+  border-radius: 3px;
+}
+
+.einheit-trade-bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  background: #2563eb;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.einheit-trade-row:hover .einheit-trade-name {
+  color: #1d4ed8;
+}
+
+.einheit-trade-row:hover .einheit-trade-bar-fill {
+  background: #1d4ed8;
+}
+
+.einheit-trade-row:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+
+.einheit-trades-empty {
+  padding: 4px 0 0;
+  text-align: left;
 }
 
 .dashboard-units-grid {

@@ -23,7 +23,7 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 
 - **Dashboard** mit KPI-Karten (Gewerke, Angebote, Geplant, Bezahlt) und Budgetübersicht
 - **Angebote** – Alle Angebote nach Gewerk gruppiert, filterbar nach Status oder Anbieter/Titel
-- **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung
+- **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung sowie Kachel- und Listenansicht mit Sortierung
 - Ampellogik / Badges für alle Status
 - Warnung wenn bezahlt > beauftragt oder Enddatum überschritten
 - Bestätigungsdialog vor dem Löschen

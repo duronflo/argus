@@ -29,6 +29,7 @@ export default function TradeList({
   const [filterStatuses, setFilterStatuses] = useState([]);
   const [filterEinheit, setFilterEinheit] = useState('');
   const [sortOrder, setSortOrder] = useState('custom');
+  const [viewMode, setViewMode] = useState('tiles');
   const [draggedId, setDraggedId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
 
@@ -57,6 +58,16 @@ export default function TradeList({
     return direction * a[field].localeCompare(b[field], 'de', { sensitivity: 'base' });
   });
 
+  const tradeItems = sorted.map((g) => {
+    const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
+    const bezahlt = gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
+    const geplant = getEffektivesGewerkBudget(g, angebote);
+    const assignedUnits = einheiten
+      ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
+      : [];
+    return { g, gwAngebote, bezahlt, geplant, assignedUnits };
+  });
+
   function handleDrop(targetId) {
     if (draggedId && draggedId !== targetId) {
       const fullIds = gewerke.map((g) => g.id);
@@ -76,7 +87,27 @@ export default function TradeList({
     <div className="trade-list">
       <div className="trade-list-header">
         <h2 className="section-title">Gewerke</h2>
-        <button className="btn btn-primary btn-sm" onClick={onAdd}>+ Neu</button>
+        <div className="trade-list-header-actions">
+          <div className="gewerke-view-toggle" role="group" aria-label="Ansicht auswählen">
+            <button
+              type="button"
+              className={`btn btn-sm${viewMode === 'tiles' ? ' btn-primary' : ' btn-secondary'}`}
+              aria-pressed={viewMode === 'tiles'}
+              onClick={() => setViewMode('tiles')}
+            >
+              ▦ Kacheln
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm${viewMode === 'list' ? ' btn-primary' : ' btn-secondary'}`}
+              aria-pressed={viewMode === 'list'}
+              onClick={() => setViewMode('list')}
+            >
+              ☷ Liste
+            </button>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={onAdd}>+ Neu</button>
+        </div>
       </div>
       <div className="trade-list-filters">
         <input
@@ -135,15 +166,69 @@ export default function TradeList({
       </div>
       {sorted.length === 0 ? (
         <p className="empty-state">Keine Gewerke gefunden.</p>
+      ) : viewMode === 'list' ? (
+        <div className="table-wrap gewerke-list-wrap">
+          <table className="table gewerke-list-table">
+            <thead>
+              <tr>
+                <th>Gewerk</th>
+                <th>Einheiten</th>
+                <th className="text-right">Geplant</th>
+                <th className="text-right">Bezahlt</th>
+                <th className="text-right">Angebote</th>
+                <th aria-label="Aktionen"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {tradeItems.map(({ g, gwAngebote, bezahlt, geplant, assignedUnits }) => (
+                <tr
+                  key={g.id}
+                  className={`${selectedId === g.id ? 'gewerke-list-row--active ' : ''}${draggedId === g.id ? 'gewerke-list-row--dragging ' : ''}${dragOverId === g.id && draggedId && draggedId !== g.id ? 'gewerke-list-row--drag-over' : ''}`}
+                  onClick={() => onSelect(g.id)}
+                  draggable={isCustomOrder}
+                  onDragStart={() => setDraggedId(g.id)}
+                  onDragOver={(e) => { if (isCustomOrder) { e.preventDefault(); setDragOverId(g.id); } }}
+                  onDragLeave={() => setDragOverId((cur) => (cur === g.id ? null : cur))}
+                  onDrop={(e) => { if (isCustomOrder) { e.preventDefault(); handleDrop(g.id); } }}
+                  onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+                >
+                  <td>
+                    <div className="gewerke-list-name">
+                      {isCustomOrder && <span className="drag-handle" title="Ziehen zum Sortieren">⠿</span>}
+                      <strong>{g.name}</strong>
+                    </div>
+                    <div className="gewerke-list-tags">
+                      <CategoryTag kategorie={g.kategorie} small />
+                      <Badge status={g.status} small />
+                    </div>
+                  </td>
+                  <td>
+                    <div className="gewerke-list-units">
+                      {assignedUnits.length > 0
+                        ? assignedUnits.map((eh) => <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>)
+                        : <span className="gewerke-list-muted">Keine</span>}
+                    </div>
+                  </td>
+                  <td className="text-right">{geplant > 0 ? formatCurrency(geplant) : '—'}</td>
+                  <td className="text-right">{bezahlt > 0 ? formatCurrency(bezahlt) : '—'}</td>
+                  <td className="text-right">{gwAngebote.length}</td>
+                  <td>
+                    <button
+                      className="btn-icon btn-icon--danger"
+                      title="Löschen"
+                      onClick={(e) => { e.stopPropagation(); onDelete(g.id); }}
+                    >
+                      🗑
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <div className="gewerke-grid">
-          {sorted.map((g) => {
-            const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-            const bezahlt = gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
-            const geplant = getEffektivesGewerkBudget(g, angebote);
-            const assignedUnits = einheiten
-              ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
-              : [];
+          {tradeItems.map(({ g, gwAngebote, bezahlt, geplant, assignedUnits }) => {
             return (
               <div
                 key={g.id}

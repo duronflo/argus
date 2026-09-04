@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Badge from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
+import { getEffektivesGewerkBudget } from '../utils/calculations';
+import { getGewerkBarColor } from '../utils/colors';
 
 function moveId(ids, draggedId, targetId) {
   const arr = [...ids];
@@ -31,6 +33,7 @@ export default function TradeList({
   const [dragOverId, setDragOverId] = useState(null);
 
   const isCustomOrder = sortOrder === 'custom';
+  const maxPlanned = gewerke.reduce((max, g) => Math.max(max, getEffektivesGewerkBudget(g, angebote)), 0);
 
   const filtered = gewerke.filter((g) => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,7 +47,11 @@ export default function TradeList({
 
   const sorted = isCustomOrder ? filtered : [...filtered].sort((a, b) => {
     const direction = sortOrder.endsWith('-desc') ? -1 : 1;
-    if (sortOrder.startsWith('budget-')) return direction * ((a.geplantBudget || 0) - (b.geplantBudget || 0));
+    if (sortOrder.startsWith('budget-')) {
+      return direction * (
+        getEffektivesGewerkBudget(a, angebote) - getEffektivesGewerkBudget(b, angebote)
+      );
+    }
     if (sortOrder.startsWith('units-')) return direction * ((a.einheitIds || []).length - (b.einheitIds || []).length);
     const field = sortOrder.startsWith('category-') ? 'kategorie' : sortOrder.startsWith('status-') ? 'status' : 'name';
     return direction * a[field].localeCompare(b[field], 'de', { sensitivity: 'base' });
@@ -133,6 +140,7 @@ export default function TradeList({
           {sorted.map((g) => {
             const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
             const bezahlt = gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
+            const geplant = getEffektivesGewerkBudget(g, angebote);
             const assignedUnits = einheiten
               ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
               : [];
@@ -177,7 +185,7 @@ export default function TradeList({
                 <div className="gewerke-card-stats">
                   <div className="gewerke-card-stat">
                     <span className="gewerke-card-stat-label">Geplant</span>
-                    <span className="gewerke-card-stat-value">{g.geplantBudget > 0 ? formatCurrency(g.geplantBudget) : '—'}</span>
+                    <span className="gewerke-card-stat-value">{geplant > 0 ? formatCurrency(geplant) : '—'}</span>
                   </div>
                   <div className="gewerke-card-stat">
                     <span className="gewerke-card-stat-label">Bezahlt</span>
@@ -188,6 +196,19 @@ export default function TradeList({
                     <span className="gewerke-card-stat-value">{gwAngebote.length}</span>
                   </div>
                 </div>
+                {maxPlanned > 0 && (
+                  <div className="gewerke-card-budget">
+                    <div className="budget-bar" aria-label={`${g.status === 'fertig' ? 'Fertig' : 'Geplant'}: ${formatCurrency(geplant)}`}>
+                      <div
+                        className="budget-bar-fill"
+                        style={{
+                          width: `${Math.min((geplant / maxPlanned) * 100, 100)}%`,
+                          background: getGewerkBarColor(g.status),
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

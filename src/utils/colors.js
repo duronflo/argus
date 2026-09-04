@@ -17,6 +17,10 @@ const PALETTE = [
   '#9333ea', // purple
 ];
 
+export const PLANNED_BAR_COLOR = '#2563eb';
+export const FINISHED_BAR_COLOR = '#16a34a';
+export const TOTAL_BUDGET_BAR_COLOR = '#7c3aed';
+
 function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -39,4 +43,8 @@ export function lighten(hex, amount = 0.85) {
   const [r, g, b] = [1, 2, 3].map((i) => parseInt(m[i], 16));
   const mix = (c) => Math.round(c + (255 - c) * amount);
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+export function getGewerkBarColor(status) {
+  return status === 'fertig' ? FINISHED_BAR_COLOR : PLANNED_BAR_COLOR;
 }

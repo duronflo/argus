@@ -88,7 +88,7 @@ export function calcEinheitStats(einheit, gewerke, angebote) {
   return {
     sumGeplant: totalGeplant,
     sumBezahlt: totalBezahlt,
-    sumOffen: totalGeplant - totalBezahlt,
+    sumOffen: Math.max(totalGeplant - totalBezahlt, 0),
   };
 }
 

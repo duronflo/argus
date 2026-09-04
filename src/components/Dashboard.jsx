@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
 import { formatCurrency } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
+import { FINISHED_BAR_COLOR, PLANNED_BAR_COLOR } from '../utils/colors';
 
 function KpiCard({ label, value, sub, warn }) {
   return (
@@ -15,7 +16,7 @@ function KpiCard({ label, value, sub, warn }) {
 
 export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNavigate }) {
   const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
-  const planned = useMemo(() => sumGeplant(gewerke), [gewerke]);
+  const planned = useMemo(() => sumGeplant(gewerke, angebote), [gewerke, angebote]);
   const effectiveBudget = useMemo(() => calcProjectBudget(projekt, einheiten), [projekt, einheiten]);
   const budgetDerived = useMemo(() => isProjectBudgetDerived(einheiten), [einheiten]);
 
@@ -62,7 +63,7 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
         <KpiCard
           label="Bezahlt"
           value={formatCurrency(stats.sumBezahlt)}
-          sub={planned > 0 ? `Offen: ${formatCurrency(planned - stats.sumBezahlt)}` : undefined}
+          sub={planned > 0 ? `Offen: ${formatCurrency(Math.max(planned - stats.sumBezahlt, 0))}` : undefined}
         />
       </div>
 
@@ -77,6 +78,8 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
           <div className="dashboard-units-grid">
             {einheitenStats.map(({ id, name, budget, stats: es }) => {
               const over = budget > 0 && es.sumGeplant > budget;
+              const unitGewerke = gewerke.filter((g) => (g.einheitIds || []).includes(id));
+              const allFinished = unitGewerke.length > 0 && unitGewerke.every((g) => g.status === 'fertig');
               return (
                 <div
                   key={id}
@@ -110,7 +113,7 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
                         className="budget-bar-fill"
                         style={{
                           width: `${Math.min((es.sumGeplant / budget) * 100, 100)}%`,
-                          background: over ? '#dc2626' : (es.sumGeplant / budget) * 100 > 80 ? '#d97706' : '#2563eb',
+                          background: over ? '#dc2626' : allFinished ? FINISHED_BAR_COLOR : PLANNED_BAR_COLOR,
                         }}
                       />
                     </div>

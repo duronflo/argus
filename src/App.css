@@ -482,6 +482,10 @@ body {
 .gewerke-card-stat-label { font-size: 10px; font-weight: 500; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; }
 .gewerke-card-stat-value { font-size: 13px; font-weight: 600; color: #111827; }
 
+.gewerke-card-budget {
+  margin-top: 12px;
+}
+
 /* --- Trade Detail (shown inside a Modal) ------------------- */
 .trade-detail-header {
   display: flex;
@@ -943,6 +947,7 @@ body {
 }
 
 .einheit-trade-name {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   color: #374151;

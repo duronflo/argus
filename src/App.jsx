@@ -17,9 +17,9 @@ const SAVE_DEBOUNCE_MS = 800;
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: '📊 Dashboard' },
-  { id: 'angebote', label: '📋 Angebote' },
-  { id: 'gewerke', label: '🔨 Gewerke' },
   { id: 'einheiten', label: '🏠 Einheiten' },
+  { id: 'gewerke', label: '🔨 Gewerke' },
+  { id: 'angebote', label: '📋 Angebote' },
 ];
 
 // ---------------------------------------------------------------------------

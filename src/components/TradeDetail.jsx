@@ -6,8 +6,8 @@ import Modal from './Modal';
 import GewerkForm from './GewerkForm';
 import PieChart from './PieChart';
 import { formatCurrency } from '../utils/dateUtils';
-import { colorForKey } from '../utils/colors';
-import { calcEinheitGewerkStats } from '../utils/calculations';
+import { colorForKey, getGewerkBarColor } from '../utils/colors';
+import { calcEinheitGewerkStats, getEffektivesGewerkBudget, sumGewerkBezahlt } from '../utils/calculations';
 
 function EinheitAnteileEditor({ gewerk, einheiten, angebote, onUpdate }) {
   const ids = gewerk.einheitIds || [];
@@ -131,11 +131,12 @@ export default function TradeDetail({
 
   const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
 
-  const bezahlt = angebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
-  const geplant = gewerk.geplantBudget || 0;
-  const offen = geplant - bezahlt;
+  const bezahlt = sumGewerkBezahlt(gewerk, angebote);
+  const originalGeplant = gewerk.geplantBudget || 0;
+  const geplant = getEffektivesGewerkBudget(gewerk, angebote);
+  const offen = Math.max(geplant - bezahlt, 0);
   const pct = geplant > 0 ? Math.min((bezahlt / geplant) * 100, 100) : 0;
-  const over = geplant > 0 && bezahlt > geplant;
+  const over = originalGeplant > 0 && bezahlt > originalGeplant;
 
   return (
     <div className="trade-detail">
@@ -174,7 +175,7 @@ export default function TradeDetail({
           <div className="budget-bar" style={{ marginTop: 8 }}>
             <div
               className="budget-bar-fill"
-              style={{ width: `${pct}%`, background: over ? '#dc2626' : pct > 80 ? '#d97706' : '#2563eb' }}
+              style={{ width: `${pct}%`, background: getGewerkBarColor(gewerk.status) }}
             />
           </div>
         )}

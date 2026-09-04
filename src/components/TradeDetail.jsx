@@ -7,6 +7,7 @@ import GewerkForm from './GewerkForm';
 import PieChart from './PieChart';
 import { formatCurrency } from '../utils/dateUtils';
 import { colorForKey } from '../utils/colors';
+import { calcEinheitGewerkStats } from '../utils/calculations';
 
 function EinheitAnteileEditor({ gewerk, einheiten, onUpdate }) {
   const ids = gewerk.einheitIds || [];
@@ -57,7 +58,7 @@ function EinheitAnteileEditor({ gewerk, einheiten, onUpdate }) {
   const total = ids.reduce((s, id) => s + (anteile[id] || 0), 0);
   const pieSegments = assignedEinheiten.map((eh) => ({
     label: eh.name,
-    value: anteile[eh.id] ?? 0,
+    value: calcEinheitGewerkStats(eh.id, gewerk, angebote).sumGeplant,
     color: colorForKey(eh.id),
   }));
 
@@ -101,9 +102,9 @@ function EinheitAnteileEditor({ gewerk, einheiten, onUpdate }) {
         {assignedEinheiten.length > 1 && (
           <div className="anteile-pie">
             <PieChart
-              segments={pieSegments.map((s) => ({ ...s, value: s.value }))}
+              segments={pieSegments}
               size={110}
-              emptyText=""
+              emptyText="Kein geplantes Budget vorhanden."
             />
           </div>
         )}

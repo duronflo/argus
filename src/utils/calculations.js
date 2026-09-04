@@ -28,6 +28,27 @@ export function getAusgewaehltesAngebot(angebote, gewerkId) {
   return angebote.find((a) => a.gewerkId === gewerkId && a.status === 'ausgewählt') || null;
 }
 
+export function calcEinheitGewerkStats(einheitId, gewerk, angebote) {
+  const anteile = gewerk.einheitAnteile || {};
+  const ids = gewerk.einheitIds || [];
+  // Normalize the split so old or manually edited data still accounts for the
+  // complete planned budget.
+  const anteileSum = ids.reduce((s, id) => s + (anteile[id] || 0), 0);
+  const anteil = anteileSum > 0
+    ? (anteile[einheitId] || 0) / anteileSum
+    : 1 / (ids.length || 1);
+  const gwAngebote = angebote.filter((a) => a.gewerkId === gewerk.id);
+  const sumGeplant = (gewerk.geplantBudget || 0) * anteil;
+  const sumBezahlt = gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0) * anteil;
+
+  return {
+    anteil,
+    sumGeplant,
+    sumBezahlt,
+    sumOffen: sumGeplant - sumBezahlt,
+  };
+}
+
 export function calcGesamtStats(angebote) {
   return {
     sumAngebote: sumAngebote(angebote),
@@ -44,19 +65,9 @@ export function calcEinheitStats(einheit, gewerke, angebote) {
   let totalGeplant = 0;
   let totalBezahlt = 0;
   unitGewerke.forEach((g) => {
-    const anteile = g.einheitAnteile || {};
-    const ids = g.einheitIds || [];
-    // Anteile are percentages that always add up to the full planned budget
-    // (100%), regardless of the raw values entered. Normalize against the
-    // sum of all shares for this gewerk so the split never loses or adds
-    // budget compared to the planned figure (geplantBudget).
-    const anteileSum = ids.reduce((s, id) => s + (anteile[id] || 0), 0);
-    const pct = anteileSum > 0
-      ? (anteile[einheit.id] || 0) / anteileSum
-      : 1 / (ids.length || 1);
-    const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-    totalGeplant += (g.geplantBudget || 0) * pct;
-    totalBezahlt += gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0) * pct;
+    const stats = calcEinheitGewerkStats(einheit.id, g, angebote);
+    totalGeplant += stats.sumGeplant;
+    totalBezahlt += stats.sumBezahlt;
   });
   return {
     sumGeplant: totalGeplant,

@@ -368,6 +368,7 @@ export default function App() {
             onAddEinheit={addEinheit}
             onEditEinheit={editEinheit}
             onDeleteEinheit={deleteEinheit}
+            onNavigate={handleNavigate}
           />
         );
       default:

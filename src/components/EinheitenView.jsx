@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import Modal from './Modal';
 import { formatCurrency } from '../utils/dateUtils';
-import { calcEinheitStats } from '../utils/calculations';
+import { calcEinheitGewerkStats, calcEinheitStats } from '../utils/calculations';
 import { generateId } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
 import PieChart from './PieChart';
@@ -41,6 +41,7 @@ export default function EinheitenView({
   onAddEinheit,
   onEditEinheit,
   onDeleteEinheit,
+  onNavigate,
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -52,13 +53,44 @@ export default function EinheitenView({
     return direction * a.name.localeCompare(b.name, 'de', { sensitivity: 'base' });
   });
 
-  const distributionSegments = useMemo(() => (
-    einheiten.map((eh) => ({
-      label: eh.name,
-      value: calcEinheitStats(eh, gewerke, angebote).sumGeplant,
-      color: colorForKey(eh.id),
-    }))
-  ), [einheiten, gewerke, angebote]);
+  const budgetCharts = useMemo(() => {
+    const unitStats = einheiten.map((eh) => ({
+      ...eh,
+      stats: calcEinheitStats(eh, gewerke, angebote),
+    }));
+    return [
+      {
+        title: 'Gesamt-Budget',
+        emptyText: 'Noch keine Einheiten-Budgets vorhanden.',
+        segments: unitStats.map((eh) => ({ label: eh.name, value: eh.budget || 0, color: colorForKey(eh.id) })),
+      },
+      {
+        title: 'Geplant',
+        emptyText: 'Noch keine geplanten Kosten vorhanden.',
+        segments: unitStats.map((eh) => ({ label: eh.name, value: eh.stats.sumGeplant, color: colorForKey(eh.id) })),
+      },
+      {
+        title: 'Bezahlt',
+        emptyText: 'Noch keine bezahlten Kosten vorhanden.',
+        segments: unitStats.map((eh) => ({ label: eh.name, value: eh.stats.sumBezahlt, color: colorForKey(eh.id) })),
+      },
+    ];
+  }, [einheiten, gewerke, angebote]);
+
+  const unitGewerke = useMemo(() => {
+    const result = new Map();
+    einheiten.forEach((eh) => {
+      const trades = gewerke
+        .filter((g) => (g.einheitIds || []).includes(eh.id))
+        .map((g) => ({
+          gewerk: g,
+          stats: calcEinheitGewerkStats(eh.id, g, angebote),
+        }))
+        .sort((a, b) => b.stats.sumGeplant - a.stats.sumGeplant);
+      result.set(eh.id, trades);
+    });
+    return result;
+  }, [einheiten, gewerke, angebote]);
 
   function handleAdd(data) {
     onAddEinheit({ ...data, id: generateId('eh') });
@@ -83,10 +115,17 @@ export default function EinheitenView({
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddForm(true)}>+ Neue Einheit</button>
       </div>
 
-      {einheiten.length > 1 && (
+      {einheiten.length > 0 && (
         <div className="dashboard-section budget-overview-section">
-          <h3 className="subsection-title">Budgetverteilung (geplant)</h3>
-          <PieChart segments={distributionSegments} emptyText="Noch keine geplanten Kosten vorhanden." />
+          <h3 className="subsection-title">Budgetverteilung</h3>
+          <div className="einheiten-budget-charts">
+            {budgetCharts.map(({ title, segments, emptyText }) => (
+              <div className="einheiten-budget-chart" key={title}>
+                <h4 className="einheiten-budget-chart-title">{title}</h4>
+                <PieChart segments={segments} emptyText={emptyText} />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -97,9 +136,8 @@ export default function EinheitenView({
           {sortedEinheiten.map((eh) => {
             const stats = calcEinheitStats(eh, gewerke, angebote);
             const budgetOver = eh.budget > 0 && stats.sumGeplant > eh.budget;
-            const unitGewerkeCount = gewerke.filter(
-              (g) => g.einheitIds && g.einheitIds.includes(eh.id)
-            ).length;
+            const trades = unitGewerke.get(eh.id) || [];
+            const maxTradePlanned = trades.reduce((max, item) => Math.max(max, item.stats.sumGeplant), 0);
 
             return (
               <div key={eh.id} className={`einheit-card${budgetOver ? ' einheit-card--warn' : ''}`}>
@@ -140,6 +178,41 @@ export default function EinheitenView({
                   planned={stats.sumGeplant}
                   paid={stats.sumBezahlt}
                 />
+
+                <div className="einheit-trades">
+                  <div className="einheit-trades-header">
+                    <h4 className="subsection-title">Teuerste Gewerke</h4>
+                    <span className="einheit-trades-hint">Klicken zum Bearbeiten</span>
+                  </div>
+                  {trades.length === 0 ? (
+                    <p className="empty-state einheit-trades-empty">Keine Gewerke zugewiesen.</p>
+                  ) : (
+                    <div className="einheit-trade-list">
+                      {trades.map(({ gewerk, stats: tradeStats }) => {
+                        const width = maxTradePlanned > 0
+                          ? Math.min((tradeStats.sumGeplant / maxTradePlanned) * 100, 100)
+                          : 0;
+                        return (
+                          <button
+                            type="button"
+                            className="einheit-trade-row"
+                            key={gewerk.id}
+                            onClick={() => onNavigate?.('gewerke', gewerk.id)}
+                            title="Gewerk öffnen und Einheiten-Anteile bearbeiten"
+                          >
+                            <span className="einheit-trade-label">
+                              <span className="einheit-trade-name">{gewerk.name}</span>
+                              <span className="einheit-trade-amount">{formatCurrency(tradeStats.sumGeplant)}</span>
+                            </span>
+                            <span className="einheit-trade-bar">
+                              <span className="einheit-trade-bar-fill" style={{ width: `${width}%` }} />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}

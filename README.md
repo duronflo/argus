@@ -19,6 +19,7 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 - **Erweiterbare Kategorien** – Kategorien (Dachdecker, Elektro, …) im Projekt-Dialog verwaltbar (hinzufügen / entfernen)
 - **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit
 - **Kostenverteilung je Einheit** – Pro Gewerk Aufteilung auf Einheiten per Schieberegler + Textbox (%), initial gleichmäßig
+- **Einheiten-Analyse** – Drei Budgetdiagramme und nach geplantem Betrag sortierte Gewerke mit Balken je Einheit
 
 - **Dashboard** mit KPI-Karten (Gewerke, Angebote, Geplant, Bezahlt) und Budgetübersicht
 - **Angebote** – Alle Angebote nach Gewerk gruppiert, filterbar nach Status oder Anbieter/Titel

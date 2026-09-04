@@ -9,7 +9,7 @@ import { formatCurrency } from '../utils/dateUtils';
 import { colorForKey } from '../utils/colors';
 import { calcEinheitGewerkStats } from '../utils/calculations';
 
-function EinheitAnteileEditor({ gewerk, einheiten, onUpdate }) {
+function EinheitAnteileEditor({ gewerk, einheiten, angebote, onUpdate }) {
   const ids = gewerk.einheitIds || [];
   const anteile = gewerk.einheitAnteile || {};
 
@@ -190,6 +190,7 @@ export default function TradeDetail({
         <EinheitAnteileEditor
           gewerk={gewerk}
           einheiten={einheiten}
+          angebote={angebote}
           onUpdate={onEditGewerk}
         />
       )}

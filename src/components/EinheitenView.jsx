@@ -144,7 +144,7 @@ export default function EinheitenView({
                 <div className="einheit-card-header">
                   <div className="einheit-card-title-row">
                     <h3 className="einheit-card-name">{eh.name}</h3>
-                    <span className="einheit-card-gewerke">{unitGewerkeCount} Gewerk{unitGewerkeCount !== 1 ? 'e' : ''}</span>
+                    <span className="einheit-card-gewerke">{trades.length} Gewerk{trades.length !== 1 ? 'e' : ''}</span>
                   </div>
                   <div className="einheit-card-actions">
                     <button className="btn btn-ghost btn-sm" onClick={() => setEditItem(eh)}>✏ Bearbeiten</button>

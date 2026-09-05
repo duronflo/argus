@@ -17,13 +17,13 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 
 - **Passwortschutz** – Cookie-basiert (100 Tage gültig), Initial-Passwort `0000`, änderbar über „Projekt bearbeiten"
 - **Erweiterbare Kategorien** – Kategorien (Dachdecker, Elektro, …) im Projekt-Dialog verwaltbar (hinzufügen / entfernen)
-- **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit
+- **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit; bezahlte Kosten ersetzen dabei den ursprünglichen Planwert
 - **Kostenverteilung je Einheit** – Pro Gewerk Aufteilung auf Einheiten per Schieberegler + Textbox (%), initial gleichmäßig
-- **Einheiten-Analyse** – Drei Budgetdiagramme und nach geplantem Betrag sortierte Gewerke mit Balken je Einheit
+- **Einheiten-Analyse** – Drei Budgetdiagramme und nach geplantem Betrag sortierte Gewerke mit farbigen Statusbalken je Einheit (blau geplant, grün fertig)
 
 - **Dashboard** mit KPI-Karten (Gewerke, Angebote, Geplant, Bezahlt) und Budgetübersicht
 - **Angebote** – Alle Angebote nach Gewerk gruppiert, filterbar nach Status oder Anbieter/Titel
-- **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung
+- **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung sowie Kachel- und Listenansicht mit Sortierung
 - Ampellogik / Badges für alle Status
 - Warnung wenn bezahlt > beauftragt oder Enddatum überschritten
 - Bestätigungsdialog vor dem Löschen

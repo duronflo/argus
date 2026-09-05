@@ -1,4 +1,4 @@
-import { colorForKey, lighten } from '../utils/colors';
+import { colorForKey } from '../utils/colors';
 
 /**
  * Colored pill showing a Gewerk category (Kategorie). Uses a deterministic
@@ -12,8 +12,9 @@ export default function CategoryTag({ kategorie, small }) {
   return (
     <span
       className={`category-tag${small ? ' category-tag--sm' : ''}`}
-      style={{ color, background: lighten(color, 0.88), borderColor: lighten(color, 0.7) }}
+      style={{ color }}
     >
+      <span className="category-tag-dot" style={{ background: color }} aria-hidden="true" />
       {kategorie}
     </span>
   );

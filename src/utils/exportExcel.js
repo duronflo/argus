@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { calcEinheitStats } from './calculations';
+import { calcEinheitStats, getEffektivesGewerkBudget } from './calculations';
 
 function headerRow(sheet, headers) {
   const row = sheet.addRow(headers);
@@ -72,7 +72,7 @@ export async function exportExcel(data, filename) {
       g.name,
       g.kategorie || '',
       g.status || '',
-      currency(g.geplantBudget),
+      currency(getEffektivesGewerkBudget(g, angebote)),
       assignedNames,
       g.notizen || '',
     ]);

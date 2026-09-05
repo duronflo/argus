@@ -366,16 +366,31 @@ body {
 
 /* --- Category tag (Gewerk Kategorie) ----------------------- */
 .category-tag {
-  display: inline-block;
-  border: 1px solid transparent;
-  border-radius: 99px;
-  padding: 2px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 0;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.category-tag--sm { font-size: 11px; padding: 1px 7px; }
+.category-tag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.category-tag--sm { font-size: 11px; }
+.category-tag--sm .category-tag-dot { width: 7px; height: 7px; }
+
+.status-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
 
 /* --- Drag handle (manual reordering) ----------------------- */
 .drag-handle {
@@ -397,7 +412,25 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 12px;
+}
+
+.trade-list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gewerke-view-toggle {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.gewerke-view-toggle .btn {
+  border-radius: 5px;
 }
 
 .trade-list-filters {
@@ -482,6 +515,70 @@ body {
 .gewerke-card-stat-label { font-size: 10px; font-weight: 500; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; }
 .gewerke-card-stat-value { font-size: 13px; font-weight: 600; color: #111827; }
 
+.gewerke-card-budget {
+  margin-top: 12px;
+}
+
+.gewerke-list-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gewerke-list-table {
+  min-width: 720px;
+}
+
+.gewerke-list-table tbody tr {
+  cursor: pointer;
+}
+
+.gewerke-list-table tbody tr:hover td {
+  background: #f9fafb;
+}
+
+.gewerke-list-row--active td {
+  background: #eff6ff !important;
+}
+
+.gewerke-list-row--dragging {
+  opacity: 0.4;
+}
+
+.gewerke-list-row--drag-over td {
+  background: #eff6ff !important;
+  box-shadow: inset 0 2px 0 #2563eb;
+}
+
+.gewerke-list-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gewerke-list-name strong {
+  color: #111827;
+}
+
+.gewerke-list-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.gewerke-list-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 150px;
+}
+
+.gewerke-list-muted {
+  color: #9ca3af;
+}
+
 /* --- Trade Detail (shown inside a Modal) ------------------- */
 .trade-detail-header {
   display: flex;
@@ -494,6 +591,16 @@ body {
 .trade-detail-title { margin: 0 0 6px; font-size: 18px; font-weight: 700; color: #111827; }
 .trade-detail-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .trade-detail-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.trade-detail-editor {
+  margin-bottom: 20px;
+  padding: 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+.trade-detail-section-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.trade-detail-section-header .section-title { margin-bottom: 2px; }
+.trade-detail-original-budget .einheit-stat-value { color: #6b7280; }
 
 .trade-detail-meta {
   background: #f9fafb;
@@ -586,7 +693,9 @@ body {
 .angebote-group-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
+  row-gap: 6px;
   padding: 10px 12px;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -594,7 +703,7 @@ body {
   border-bottom: none;
 }
 
-.angebote-group-name { font-weight: 600; font-size: 14px; color: #111827; flex: 1; }
+.angebote-group-name { font-weight: 600; font-size: 14px; color: #111827; flex: 1 1 180px; min-width: 0; }
 .angebote-group-sum { font-size: 13px; font-weight: 600; color: #374151; flex-shrink: 0; }
 .angebote-group-nav { font-size: 12px; color: #2563eb; margin-left: auto; }
 
@@ -651,6 +760,12 @@ body {
 .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-label { font-size: 12px; font-weight: 500; color: #374151; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.form-autosave-hint {
+  margin: 0;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 500;
+}
 
 .input {
   width: 100%;
@@ -768,6 +883,7 @@ body {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .table th, .table td { padding: 6px 7px; }
   .table th:nth-child(n+5), .table td:nth-child(n+5) { display: none; }
+  .gewerke-list-table th, .gewerke-list-table td { display: table-cell; }
 }
 
 /* --- Einheit tags ----------------------------------------- */
@@ -866,7 +982,7 @@ body {
 }
 
 .trade-detail-meta .einheit-card-stats {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   margin-bottom: 0;
 }
 
@@ -934,15 +1050,21 @@ body {
 }
 
 .einheit-trade-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: block;
   margin-bottom: 4px;
   font-size: 12px;
 }
 
+.einheit-trade-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
 .einheit-trade-name {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   color: #374151;
@@ -954,6 +1076,11 @@ body {
   flex-shrink: 0;
   color: #111827;
   font-weight: 600;
+}
+
+.einheit-trade-status {
+  display: flex;
+  margin-top: 5px;
 }
 
 .einheit-trade-bar {

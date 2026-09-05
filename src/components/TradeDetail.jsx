@@ -1,13 +1,11 @@
-import { useState } from 'react';
-import Badge from './Badge';
+import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import OfferTable from './OfferTable';
-import Modal from './Modal';
 import GewerkForm from './GewerkForm';
 import PieChart from './PieChart';
 import { formatCurrency } from '../utils/dateUtils';
-import { colorForKey } from '../utils/colors';
-import { calcEinheitGewerkStats } from '../utils/calculations';
+import { colorForKey, getGewerkBarColor } from '../utils/colors';
+import { calcEinheitGewerkStats, getEffektivesGewerkBudget, sumGewerkBezahlt } from '../utils/calculations';
 
 function EinheitAnteileEditor({ gewerk, einheiten, angebote, onUpdate }) {
   const ids = gewerk.einheitIds || [];
@@ -123,19 +121,19 @@ export default function TradeDetail({
   onEditAngebot,
   onDeleteAngebot,
 }) {
-  const [showEditForm, setShowEditForm] = useState(false);
-
   const assignedEinheiten = einheiten
     ? einheiten.filter((eh) => (gewerk.einheitIds || []).includes(eh.id))
     : [];
 
   const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
 
-  const bezahlt = angebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
-  const geplant = gewerk.geplantBudget || 0;
-  const offen = geplant - bezahlt;
+  const bezahlt = sumGewerkBezahlt(gewerk, angebote);
+  const originalGeplant = gewerk.geplantBudget || 0;
+  const geplant = getEffektivesGewerkBudget(gewerk, angebote);
+  const offen = Math.max(geplant - bezahlt, 0);
   const pct = geplant > 0 ? Math.min((bezahlt / geplant) * 100, 100) : 0;
-  const over = geplant > 0 && bezahlt > geplant;
+  const over = originalGeplant > 0 && bezahlt > originalGeplant;
+  const budgetWasOverridden = gewerk.status === 'fertig' && bezahlt > 0;
 
   return (
     <div className="trade-detail">
@@ -151,16 +149,22 @@ export default function TradeDetail({
         </div>
         <div className="trade-detail-actions">
           <Badge status={gewerk.status} />
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowEditForm(true)}>✏ Bearbeiten</button>
+          <GewerkPaymentBadge status={gewerk.status} paid={bezahlt} />
         </div>
       </div>
 
       <div className="trade-detail-meta">
         <div className="einheit-card-stats">
           <div className="einheit-stat">
-            <span className="einheit-stat-label">Geplantes Budget</span>
+            <span className="einheit-stat-label">Aktuelles Budget</span>
             <span className="einheit-stat-value">{geplant > 0 ? formatCurrency(geplant) : '—'}</span>
           </div>
+          {budgetWasOverridden && (
+            <div className="einheit-stat trade-detail-original-budget">
+              <span className="einheit-stat-label">Ursprünglich geplant</span>
+              <span className="einheit-stat-value">{formatCurrency(originalGeplant)}</span>
+            </div>
+          )}
           <div className="einheit-stat">
             <span className="einheit-stat-label">Bezahlt</span>
             <span className={`einheit-stat-value${over ? ' warn-text' : ''}`}>{formatCurrency(bezahlt)}</span>
@@ -174,7 +178,7 @@ export default function TradeDetail({
           <div className="budget-bar" style={{ marginTop: 8 }}>
             <div
               className="budget-bar-fill"
-              style={{ width: `${pct}%`, background: over ? '#dc2626' : pct > 80 ? '#d97706' : '#2563eb' }}
+              style={{ width: `${pct}%`, background: getGewerkBarColor(gewerk.status, bezahlt) }}
             />
           </div>
         )}
@@ -185,6 +189,23 @@ export default function TradeDetail({
           </div>
         )}
       </div>
+
+      <section className="trade-detail-editor">
+        <div className="trade-detail-section-header">
+          <div>
+            <h3 className="section-title">Gewerk bearbeiten</h3>
+            <p className="form-hint">Felder direkt ändern – die Änderungen werden automatisch übernommen.</p>
+          </div>
+        </div>
+        <GewerkForm
+          key={gewerk.id}
+          initial={gewerk}
+          einheiten={einheiten}
+          kategorien={kats}
+          autoSave
+          onSave={(data) => onEditGewerk({ ...gewerk, ...data })}
+        />
+      </section>
 
       {assignedEinheiten.length > 0 && (
         <EinheitAnteileEditor
@@ -202,20 +223,6 @@ export default function TradeDetail({
         onDeleteAngebot={onDeleteAngebot}
       />
 
-      {showEditForm && (
-        <Modal title="Gewerk bearbeiten" onClose={() => setShowEditForm(false)}>
-          <GewerkForm
-            initial={gewerk}
-            einheiten={einheiten}
-            kategorien={kats}
-            onSave={(data) => {
-              onEditGewerk({ ...gewerk, ...data });
-              setShowEditForm(false);
-            }}
-            onCancel={() => setShowEditForm(false)}
-          />
-        </Modal>
-      )}
     </div>
   );
 }

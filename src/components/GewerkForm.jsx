@@ -44,7 +44,7 @@ export default function GewerkForm({ initial, einheiten, kategorien, onSave, onC
   }
 
   return (
-    <form className="form" onSubmit={(e) => { e.preventDefault(); save(); }}>
+    <form className="form" onSubmit={(e) => { e.preventDefault(); if (!autoSave) save(); }}>
       <div className="form-row">
         <label className="form-label">Name *</label>
         <input

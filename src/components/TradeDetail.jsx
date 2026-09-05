@@ -194,7 +194,7 @@ export default function TradeDetail({
         <div className="trade-detail-section-header">
           <div>
             <h3 className="section-title">Gewerk bearbeiten</h3>
-            <p className="form-hint">Änderungen direkt hier vornehmen und speichern.</p>
+            <p className="form-hint">Felder direkt ändern – die Änderungen werden automatisch übernommen.</p>
           </div>
         </div>
         <GewerkForm
@@ -202,7 +202,7 @@ export default function TradeDetail({
           initial={gewerk}
           einheiten={einheiten}
           kategorien={kats}
-          hideCancel
+          autoSave
           onSave={(data) => onEditGewerk({ ...gewerk, ...data })}
         />
       </section>

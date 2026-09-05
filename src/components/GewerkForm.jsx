@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
 
-export default function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel }) {
+export default function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel, hideCancel = false }) {
   const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
   const [form, setForm] = useState(
     initial || {
@@ -84,7 +84,7 @@ export default function GewerkForm({ initial, einheiten, kategorien, onSave, onC
         <textarea className="input textarea" rows={3} value={form.notizen} onChange={(e) => set('notizen', e.target.value)} />
       </div>
       <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel}>Abbrechen</button>
+        {!hideCancel && <button type="button" className="btn btn-secondary" onClick={onCancel}>Abbrechen</button>}
         <button type="submit" className="btn btn-primary">Speichern</button>
       </div>
     </form>

@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import OfferTable from './OfferTable';
-import Modal from './Modal';
 import GewerkForm from './GewerkForm';
 import PieChart from './PieChart';
 import { formatCurrency } from '../utils/dateUtils';
@@ -123,8 +121,6 @@ export default function TradeDetail({
   onEditAngebot,
   onDeleteAngebot,
 }) {
-  const [showEditForm, setShowEditForm] = useState(false);
-
   const assignedEinheiten = einheiten
     ? einheiten.filter((eh) => (gewerk.einheitIds || []).includes(eh.id))
     : [];
@@ -137,6 +133,7 @@ export default function TradeDetail({
   const offen = Math.max(geplant - bezahlt, 0);
   const pct = geplant > 0 ? Math.min((bezahlt / geplant) * 100, 100) : 0;
   const over = originalGeplant > 0 && bezahlt > originalGeplant;
+  const budgetWasOverridden = gewerk.status === 'fertig' && bezahlt > 0;
 
   return (
     <div className="trade-detail">
@@ -153,16 +150,21 @@ export default function TradeDetail({
         <div className="trade-detail-actions">
           <Badge status={gewerk.status} />
           <GewerkPaymentBadge status={gewerk.status} paid={bezahlt} />
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowEditForm(true)}>✏ Bearbeiten</button>
         </div>
       </div>
 
       <div className="trade-detail-meta">
         <div className="einheit-card-stats">
           <div className="einheit-stat">
-            <span className="einheit-stat-label">Geplantes Budget</span>
+            <span className="einheit-stat-label">Aktuelles Budget</span>
             <span className="einheit-stat-value">{geplant > 0 ? formatCurrency(geplant) : '—'}</span>
           </div>
+          {budgetWasOverridden && (
+            <div className="einheit-stat trade-detail-original-budget">
+              <span className="einheit-stat-label">Ursprünglich geplant</span>
+              <span className="einheit-stat-value">{formatCurrency(originalGeplant)}</span>
+            </div>
+          )}
           <div className="einheit-stat">
             <span className="einheit-stat-label">Bezahlt</span>
             <span className={`einheit-stat-value${over ? ' warn-text' : ''}`}>{formatCurrency(bezahlt)}</span>
@@ -188,6 +190,23 @@ export default function TradeDetail({
         )}
       </div>
 
+      <section className="trade-detail-editor">
+        <div className="trade-detail-section-header">
+          <div>
+            <h3 className="section-title">Gewerk bearbeiten</h3>
+            <p className="form-hint">Änderungen direkt hier vornehmen und speichern.</p>
+          </div>
+        </div>
+        <GewerkForm
+          key={gewerk.id}
+          initial={gewerk}
+          einheiten={einheiten}
+          kategorien={kats}
+          hideCancel
+          onSave={(data) => onEditGewerk({ ...gewerk, ...data })}
+        />
+      </section>
+
       {assignedEinheiten.length > 0 && (
         <EinheitAnteileEditor
           gewerk={gewerk}
@@ -204,20 +223,6 @@ export default function TradeDetail({
         onDeleteAngebot={onDeleteAngebot}
       />
 
-      {showEditForm && (
-        <Modal title="Gewerk bearbeiten" onClose={() => setShowEditForm(false)}>
-          <GewerkForm
-            initial={gewerk}
-            einheiten={einheiten}
-            kategorien={kats}
-            onSave={(data) => {
-              onEditGewerk({ ...gewerk, ...data });
-              setShowEditForm(false);
-            }}
-            onCancel={() => setShowEditForm(false)}
-          />
-        </Modal>
-      )}
     </div>
   );
 }

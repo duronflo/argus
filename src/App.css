@@ -591,6 +591,16 @@ body {
 .trade-detail-title { margin: 0 0 6px; font-size: 18px; font-weight: 700; color: #111827; }
 .trade-detail-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .trade-detail-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.trade-detail-editor {
+  margin-bottom: 20px;
+  padding: 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+.trade-detail-section-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.trade-detail-section-header .section-title { margin-bottom: 2px; }
+.trade-detail-original-budget .einheit-stat-value { color: #6b7280; }
 
 .trade-detail-meta {
   background: #f9fafb;
@@ -966,7 +976,7 @@ body {
 }
 
 .trade-detail-meta .einheit-card-stats {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   margin-bottom: 0;
 }
 

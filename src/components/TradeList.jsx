@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Badge from './Badge';
+import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
 import { getEffektivesGewerkBudget } from '../utils/calculations';
@@ -200,6 +200,7 @@ export default function TradeList({
                     <div className="gewerke-list-tags">
                       <CategoryTag kategorie={g.kategorie} small />
                       <Badge status={g.status} small />
+                      <GewerkPaymentBadge status={g.status} paid={bezahlt} small />
                     </div>
                   </td>
                   <td>
@@ -248,6 +249,7 @@ export default function TradeList({
                     <div className="gewerke-card-tags">
                       <CategoryTag kategorie={g.kategorie} small />
                       <Badge status={g.status} small />
+                      <GewerkPaymentBadge status={g.status} paid={bezahlt} small />
                     </div>
                   </div>
                   <button
@@ -288,7 +290,7 @@ export default function TradeList({
                         className="budget-bar-fill"
                         style={{
                           width: `${Math.min((geplant / maxPlanned) * 100, 100)}%`,
-                          background: getGewerkBarColor(g.status),
+                          background: getGewerkBarColor(g.status, bezahlt),
                         }}
                       />
                     </div>

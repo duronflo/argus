@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
+import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant, sumGewerkBezahlt } from '../utils/calculations';
 import { formatCurrency } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
-import { FINISHED_BAR_COLOR, PLANNED_BAR_COLOR } from '../utils/colors';
+import { getGewerkBarColor } from '../utils/colors';
 
 function KpiCard({ label, value, sub, warn }) {
   return (
@@ -80,6 +80,7 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
               const over = budget > 0 && es.sumGeplant > budget;
               const unitGewerke = gewerke.filter((g) => (g.einheitIds || []).includes(id));
               const allFinished = unitGewerke.length > 0 && unitGewerke.every((g) => g.status === 'fertig');
+              const allFinishedAndPaid = allFinished && unitGewerke.every((g) => sumGewerkBezahlt(g, angebote) > 0);
               return (
                 <div
                   key={id}
@@ -113,7 +114,13 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
                         className="budget-bar-fill"
                         style={{
                           width: `${Math.min((es.sumGeplant / budget) * 100, 100)}%`,
-                          background: over ? '#dc2626' : allFinished ? FINISHED_BAR_COLOR : PLANNED_BAR_COLOR,
+                          background: over
+                            ? '#dc2626'
+                            : allFinishedAndPaid
+                              ? getGewerkBarColor('fertig', 1)
+                              : allFinished
+                                ? getGewerkBarColor('fertig')
+                                : getGewerkBarColor('in Arbeit'),
                         }}
                       />
                     </div>

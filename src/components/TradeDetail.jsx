@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Badge from './Badge';
+import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import OfferTable from './OfferTable';
 import Modal from './Modal';
@@ -152,6 +152,7 @@ export default function TradeDetail({
         </div>
         <div className="trade-detail-actions">
           <Badge status={gewerk.status} />
+          <GewerkPaymentBadge status={gewerk.status} paid={bezahlt} />
           <button className="btn btn-ghost btn-sm" onClick={() => setShowEditForm(true)}>✏ Bearbeiten</button>
         </div>
       </div>
@@ -175,7 +176,7 @@ export default function TradeDetail({
           <div className="budget-bar" style={{ marginTop: 8 }}>
             <div
               className="budget-bar-fill"
-              style={{ width: `${pct}%`, background: getGewerkBarColor(gewerk.status) }}
+              style={{ width: `${pct}%`, background: getGewerkBarColor(gewerk.status, bezahlt) }}
             />
           </div>
         )}

@@ -19,14 +19,14 @@ export function sumGewerkBezahlt(gewerk, angebote = []) {
 }
 
 /**
- * Uses the paid amount as the effective planned amount once a trade has actual
- * costs. This releases the difference between the original estimate and the
- * amount that was actually paid back into the available budget.
+ * Uses the paid amount as the effective planned amount only after the trade is
+ * finished and has a paid amount. Finished but unpaid trades keep their
+ * original planned budget.
  */
 export function getEffektivesGewerkBudget(gewerk, angebote = []) {
   const geplant = gewerk.geplantBudget || 0;
   const bezahlt = sumGewerkBezahlt(gewerk, angebote);
-  return bezahlt > 0 ? bezahlt : geplant;
+  return gewerk.status === 'fertig' && bezahlt > 0 ? bezahlt : geplant;
 }
 
 export function sumGeplant(gewerke, angebote = []) {

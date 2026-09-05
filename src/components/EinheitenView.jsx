@@ -6,7 +6,7 @@ import { generateId } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
 import PieChart from './PieChart';
 import { colorForKey, getGewerkBarColor } from '../utils/colors';
-import Badge from './Badge';
+import Badge, { GewerkPaymentBadge } from './Badge';
 import TradeDetail from './TradeDetail';
 
 function EinheitForm({ initial, onSave, onCancel }) {
@@ -239,12 +239,13 @@ export default function EinheitenView({
                               </span>
                               <span className="einheit-trade-status">
                                 <Badge status={gewerk.status} small />
+                                <GewerkPaymentBadge status={gewerk.status} paid={tradeStats.sumBezahlt} small />
                               </span>
                             </span>
                             <span className="einheit-trade-bar">
                               <span
                                 className="einheit-trade-bar-fill"
-                                style={{ width: `${width}%`, background: getGewerkBarColor(gewerk.status) }}
+                                style={{ width: `${width}%`, background: getGewerkBarColor(gewerk.status, tradeStats.sumBezahlt) }}
                               />
                             </span>
                           </button>

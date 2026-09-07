@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
-import { calcGesamtStats, isGewerkBezahltMarkiert, sumGewerkBezahlt } from '../utils/calculations';
+import { calcGesamtStats, isAngebotBezahltMarkiert, isGewerkBezahltMarkiert, sumAngebotBezahlt, sumGewerkBezahlt } from '../utils/calculations';
 
 function moveId(ids, draggedId, targetId) {
   const arr = [...ids];
@@ -191,18 +191,21 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate,
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((a) => (
+                    {items.map((a) => {
+                      const bezahlt = sumAngebotBezahlt(a);
+                      return (
                       <tr key={a.id} className={a.status === 'ausgewählt' ? 'row--selected' : a.status === 'abgelehnt' ? 'row--rejected' : ''}>
                         <td><strong>{a.anbieter}</strong></td>
                         <td>{a.titel || '—'}</td>
                         <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
                         <td className="text-right">
-                          {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : a.bezahltMarkiert ? 'Markiert' : '—'}
+                          {bezahlt > 0 ? formatCurrency(bezahlt) : isAngebotBezahltMarkiert(a) ? 'Markiert' : '—'}
                         </td>
                         <td><Badge status={a.status} small /></td>
                         <td className="note-cell">{a.notiz || '—'}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

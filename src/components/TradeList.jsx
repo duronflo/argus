@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
-import { getEffektivesGewerkBudget, isAngebotBezahltMarkiert } from '../utils/calculations';
+import { getEffektivesGewerkBudget, isAngebotBezahltMarkiert, sumAngebotBezahlt } from '../utils/calculations';
 import { getGewerkBarColor } from '../utils/colors';
 
 function moveId(ids, draggedId, targetId) {
@@ -60,7 +60,7 @@ export default function TradeList({
 
   const tradeItems = sorted.map((g) => {
     const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-    const bezahlt = gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
+    const bezahlt = gwAngebote.reduce((s, a) => s + sumAngebotBezahlt(a), 0);
     const bezahltMarkiert = gwAngebote.some((a) => isAngebotBezahltMarkiert(a));
     const geplant = getEffektivesGewerkBudget(g, angebote);
     const assignedUnits = einheiten

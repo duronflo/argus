@@ -4,22 +4,38 @@ export function sumAngebote(angebote) {
   return angebote.reduce((sum, a) => sum + (a.betragAngebot || 0), 0);
 }
 
+export function getAngebotRechnungen(angebot) {
+  return Array.isArray(angebot?.rechnungen) ? angebot.rechnungen : [];
+}
+
 export function sumBeauftragt(angebote) {
   return angebote.reduce((sum, a) => sum + (a.betragBeauftragt || 0), 0);
 }
 
 export function sumBezahlt(angebote) {
-  return angebote.reduce((sum, a) => sum + (a.bezahlt || 0), 0);
+  return angebote.reduce((sum, a) => sum + sumAngebotBezahlt(a), 0);
+}
+
+export function sumAngebotRechnungsbetrag(angebot) {
+  return getAngebotRechnungen(angebot).reduce((sum, r) => sum + (r.betrag || 0), 0);
+}
+
+export function sumAngebotBezahlt(angebot) {
+  const rechnungen = getAngebotRechnungen(angebot);
+  if (rechnungen.length === 0) return angebot?.bezahlt || 0;
+  return rechnungen.reduce((sum, r) => sum + (r.bezahlt || 0), 0);
 }
 
 export function isAngebotBezahltMarkiert(angebot) {
+  const rechnungen = getAngebotRechnungen(angebot);
+  if (rechnungen.length > 0) return rechnungen.some((r) => !!r.bezahltMarkiert || (r.bezahlt || 0) > 0);
   return !!angebot?.bezahltMarkiert || (angebot?.bezahlt || 0) > 0;
 }
 
 export function sumGewerkBezahlt(gewerk, angebote = []) {
   return angebote
     .filter((a) => a.gewerkId === gewerk.id)
-    .reduce((sum, a) => sum + (a.bezahlt || 0), 0);
+    .reduce((sum, a) => sum + sumAngebotBezahlt(a), 0);
 }
 
 export function isGewerkBezahltMarkiert(gewerk, angebote = []) {

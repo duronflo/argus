@@ -86,6 +86,15 @@ function migrateData(parsed) {
     parsed.angebote = parsed.angebote.map((a) => {
       const a2 = { ...a };
       REMOVED_ANGEBOT_FIELDS.forEach((f) => delete a2[f]);
+      a2.bezahltMarkiert = !!a2.bezahltMarkiert;
+      a2.rechnungen = Array.isArray(a2.rechnungen)
+        ? a2.rechnungen.map((r) => ({
+          ...r,
+          betrag: parseFloat(r.betrag) || 0,
+          bezahlt: (r.status === 'bezahlt' || !!r.bezahltMarkiert || (parseFloat(r.bezahlt) || 0) > 0) ? (parseFloat(r.betrag) || 0) : 0,
+          status: (r.status === 'bezahlt' || !!r.bezahltMarkiert || (parseFloat(r.bezahlt) || 0) > 0) ? 'bezahlt' : 'offen',
+        }))
+        : [];
       return a2;
     });
   }

@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { calcEinheitStats, getEffektivesGewerkBudget } from './calculations';
+import { calcEinheitStats, getAngebotRechnungen, getEffektivesGewerkBudget, sumAngebotBezahlt, sumAngebotRechnungsbetrag } from './calculations';
 
 function headerRow(sheet, headers) {
   const row = sheet.addRow(headers);
@@ -83,17 +83,20 @@ export async function exportExcel(data, filename) {
   const sheetAngebote = workbook.addWorksheet('Angebote');
   headerRow(sheetAngebote, [
     'Gewerk', 'Anbieter', 'Titel',
-    'Angebotsbetrag (€)', 'Bezahlt (€)',
+    'Angebotsbetrag (€)', 'Rechnungen', 'Rechnungsbetrag (€)', 'Bezahlt (€)',
     'Status', 'Notiz',
   ]);
   angebote.forEach((a) => {
     const gewerk = gewerke.find((g) => g.id === a.gewerkId);
+    const rechnungen = getAngebotRechnungen(a);
     sheetAngebote.addRow([
       gewerk ? gewerk.name : '',
       a.anbieter || '',
       a.titel || '',
       currency(a.betragAngebot),
-      currency(a.bezahlt),
+      rechnungen.length,
+      currency(sumAngebotRechnungsbetrag(a)),
+      currency(sumAngebotBezahlt(a)),
       a.status || '',
       a.notiz || '',
     ]);

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
-import { calcGesamtStats, sumGewerkBezahlt } from '../utils/calculations';
+import { calcGesamtStats, isAngebotBezahltMarkiert, isGewerkBezahltMarkiert, sumAngebotBezahlt, sumGewerkBezahlt } from '../utils/calculations';
 
 function moveId(ids, draggedId, targetId) {
   const arr = [...ids];
@@ -164,7 +164,14 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate,
                 <span className="angebote-group-name">{gewerk ? gewerk.name : 'Unbekanntes Gewerk'}</span>
                 {gewerk && <CategoryTag kategorie={gewerk.kategorie} small />}
                 {gewerk && <Badge status={gewerk.status} small />}
-                {gewerk && <GewerkPaymentBadge status={gewerk.status} paid={sumGewerkBezahlt(gewerk, angebote)} small />}
+                {gewerk && (
+                  <GewerkPaymentBadge
+                    status={gewerk.status}
+                    paid={sumGewerkBezahlt(gewerk, angebote)}
+                    paidMarked={isGewerkBezahltMarkiert(gewerk, angebote)}
+                    small
+                  />
+                )}
                 {assignedUnits.map((eh) => (
                   <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
                 ))}
@@ -184,18 +191,21 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate,
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((a) => (
+                    {items.map((a) => {
+                      const bezahlt = sumAngebotBezahlt(a);
+                      return (
                       <tr key={a.id} className={a.status === 'ausgewählt' ? 'row--selected' : a.status === 'abgelehnt' ? 'row--rejected' : ''}>
                         <td><strong>{a.anbieter}</strong></td>
                         <td>{a.titel || '—'}</td>
                         <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
                         <td className="text-right">
-                          {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : '—'}
+                          {bezahlt > 0 ? formatCurrency(bezahlt) : isAngebotBezahltMarkiert(a) ? 'Markiert' : '—'}
                         </td>
                         <td><Badge status={a.status} small /></td>
                         <td className="note-cell">{a.notiz || '—'}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

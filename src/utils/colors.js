@@ -46,7 +46,7 @@ export function lighten(hex, amount = 0.85) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
-export function getGewerkBarColor(status, paid = 0) {
+export function getGewerkBarColor(status, paid = 0, paidMarked = false) {
   if (status !== 'fertig') return PLANNED_BAR_COLOR;
-  return paid > 0 ? FINISHED_BAR_COLOR : FINISHED_UNPAID_BAR_COLOR;
+  return paidMarked || paid > 0 ? FINISHED_BAR_COLOR : FINISHED_UNPAID_BAR_COLOR;
 }

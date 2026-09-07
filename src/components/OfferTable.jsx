@@ -1,32 +1,87 @@
 import { useState } from 'react';
-import { formatCurrency } from '../utils/dateUtils';
+import { formatCurrency, generateId } from '../utils/dateUtils';
+import {
+  getAngebotRechnungen,
+  isAngebotBezahltMarkiert,
+  sumAngebotBezahlt,
+  sumAngebotRechnungsbetrag,
+} from '../utils/calculations';
 import Badge from './Badge';
 import Modal from './Modal';
 
 const ANGEBOT_STATUSES = ['offen', 'ausgewählt', 'abgelehnt'];
+const RECHNUNG_STATUSES = ['offen', 'bezahlt'];
 
 function AngebotForm({ initial, onSave, onCancel }) {
+  const rechnungenInitial = Array.isArray(initial?.rechnungen) ? initial.rechnungen : [];
   const [form, setForm] = useState(
-    initial || {
+    {
       anbieter: '',
       titel: '',
       betragAngebot: '',
       bezahlt: '',
       status: 'offen',
       notiz: '',
-    }
+      ...initial,
+      rechnungen: rechnungenInitial.map((r) => ({
+        id: r.id || generateId('rg'),
+        titel: r.titel || '',
+        betrag: r.betrag ?? '',
+        status: r.status || 'offen',
+        notiz: r.notiz || '',
+      })),
+    },
   );
 
   function set(field, val) {
     setForm((prev) => ({ ...prev, [field]: val }));
   }
 
+  function addRechnung() {
+    setForm((prev) => ({
+      ...prev,
+      rechnungen: [
+        ...(prev.rechnungen || []),
+        {
+          id: generateId('rg'),
+          titel: '',
+          betrag: '',
+          status: 'offen',
+          notiz: '',
+        },
+      ],
+    }));
+  }
+
+  function setRechnung(id, field, val) {
+    setForm((prev) => ({
+      ...prev,
+      rechnungen: (prev.rechnungen || []).map((r) => (r.id === id ? { ...r, [field]: val } : r)),
+    }));
+  }
+
+  function removeRechnung(id) {
+    setForm((prev) => ({
+      ...prev,
+      rechnungen: (prev.rechnungen || []).filter((r) => r.id !== id),
+    }));
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
+    const rechnungen = (form.rechnungen || [])
+      .map((r) => ({
+        ...r,
+        titel: (r.titel || '').trim(),
+        betrag: parseFloat(r.betrag) || 0,
+        bezahlt: r.status === 'bezahlt' ? (parseFloat(r.betrag) || 0) : 0,
+      }))
+      .filter((r) => r.titel || r.betrag > 0 || r.notiz);
     onSave({
       ...form,
       betragAngebot: parseFloat(form.betragAngebot) || 0,
       bezahlt: parseFloat(form.bezahlt) || 0,
+      rechnungen,
     });
   }
 
@@ -49,6 +104,49 @@ function AngebotForm({ initial, onSave, onCancel }) {
       <div className="form-row">
         <label className="form-label">Bezahlt (€)</label>
         <input className="input" type="number" step="0.01" min="0" value={form.bezahlt} onChange={(e) => set('bezahlt', e.target.value)} />
+      </div>
+      <div className="form-row">
+        <div className="offer-table-header" style={{ marginBottom: 8 }}>
+          <label className="form-label" style={{ margin: 0 }}>Rechnungen</label>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={addRechnung}>+ Rechnung</button>
+        </div>
+        {(form.rechnungen || []).length === 0 ? (
+          <span className="form-hint">Noch keine Rechnungen erfasst.</span>
+        ) : (
+          (form.rechnungen || []).map((r) => (
+            <div key={r.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, marginBottom: 10 }}>
+              <div className="form-row-2">
+                <div className="form-row">
+                  <label className="form-label">Titel</label>
+                  <input className="input" value={r.titel} onChange={(e) => setRechnung(r.id, 'titel', e.target.value)} />
+                </div>
+                <div className="form-row">
+                  <label className="form-label">Status</label>
+                  <select className="select" value={r.status} onChange={(e) => setRechnung(r.id, 'status', e.target.value)}>
+                    {RECHNUNG_STATUSES.map((s) => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div className="form-row">
+                  <label className="form-label">Rechnungsbetrag (€)</label>
+                  <input className="input" type="number" step="0.01" min="0" value={r.betrag} onChange={(e) => setRechnung(r.id, 'betrag', e.target.value)} />
+                </div>
+                <div className="form-row">
+                  <label className="form-label">Bezahlt (€)</label>
+                  <input className="input" disabled value={r.status === 'bezahlt' ? formatCurrency(parseFloat(r.betrag) || 0) : formatCurrency(0)} />
+                </div>
+              </div>
+              <div className="form-row">
+                <label className="form-label">Notiz</label>
+                <textarea className="input textarea" rows={2} value={r.notiz} onChange={(e) => setRechnung(r.id, 'notiz', e.target.value)} />
+              </div>
+              <button type="button" className="btn btn-danger btn-sm" onClick={() => removeRechnung(r.id)}>Rechnung löschen</button>
+            </div>
+          ))
+        )}
       </div>
       <div className="form-row">
         <label className="form-label">Status</label>
@@ -83,7 +181,7 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
   });
 
   const sumAngebote = angebote.reduce((s, a) => s + (a.betragAngebot || 0), 0);
-  const sumBezahlt = angebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
+  const sumBezahlt = angebote.reduce((s, a) => s + sumAngebotBezahlt(a), 0);
 
   return (
     <div className="offer-table-wrap">
@@ -114,19 +212,27 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
                 <th>Anbieter</th>
                 <th>Titel</th>
                 <th className="text-right">Angebot</th>
+                <th className="text-right">Rechnungen</th>
                 <th className="text-right">Bezahlt</th>
                 <th>Status</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {sortedAngebote.map((a) => (
+              {sortedAngebote.map((a) => {
+                const bezahlt = sumAngebotBezahlt(a);
+                const rechnungsbetrag = sumAngebotRechnungsbetrag(a);
+                const rechnungsCount = getAngebotRechnungen(a).length;
+                return (
                 <tr key={a.id} className={a.status === 'ausgewählt' ? 'row--selected' : a.status === 'abgelehnt' ? 'row--rejected' : ''}>
                   <td><strong>{a.anbieter}</strong></td>
                   <td>{a.titel || '—'}</td>
                   <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
                   <td className="text-right">
-                    {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : '—'}
+                    {rechnungsCount > 0 ? `${rechnungsCount} · ${formatCurrency(rechnungsbetrag)}` : '—'}
+                  </td>
+                  <td className="text-right">
+                    {bezahlt > 0 ? formatCurrency(bezahlt) : isAngebotBezahltMarkiert(a) ? 'Markiert' : '—'}
                   </td>
                   <td><Badge status={a.status} small /></td>
                   <td>
@@ -136,12 +242,14 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="table-foot">
                 <td colSpan={2}><strong>Summen</strong></td>
                 <td className="text-right"><strong>{formatCurrency(sumAngebote)}</strong></td>
+                <td></td>
                 <td className="text-right"><strong>{formatCurrency(sumBezahlt)}</strong></td>
                 <td colSpan={2}></td>
               </tr>

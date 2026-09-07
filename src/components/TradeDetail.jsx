@@ -5,7 +5,7 @@ import GewerkForm from './GewerkForm';
 import PieChart from './PieChart';
 import { formatCurrency } from '../utils/dateUtils';
 import { colorForKey, getGewerkBarColor } from '../utils/colors';
-import { calcEinheitGewerkStats, getEffektivesGewerkBudget, sumGewerkBezahlt } from '../utils/calculations';
+import { calcEinheitGewerkStats, getEffektivesGewerkBudget, isGewerkBezahltMarkiert, sumGewerkBezahlt } from '../utils/calculations';
 
 function EinheitAnteileEditor({ gewerk, einheiten, angebote, onUpdate }) {
   const ids = gewerk.einheitIds || [];
@@ -134,6 +134,7 @@ export default function TradeDetail({
   const pct = geplant > 0 ? Math.min((bezahlt / geplant) * 100, 100) : 0;
   const over = originalGeplant > 0 && bezahlt > originalGeplant;
   const budgetWasOverridden = gewerk.status === 'fertig' && bezahlt > 0;
+  const bezahltMarkiert = isGewerkBezahltMarkiert(gewerk, angebote);
 
   return (
     <div className="trade-detail">
@@ -149,7 +150,7 @@ export default function TradeDetail({
         </div>
         <div className="trade-detail-actions">
           <Badge status={gewerk.status} />
-          <GewerkPaymentBadge status={gewerk.status} paid={bezahlt} />
+          <GewerkPaymentBadge status={gewerk.status} paid={bezahlt} paidMarked={bezahltMarkiert} />
         </div>
       </div>
 
@@ -167,7 +168,9 @@ export default function TradeDetail({
           )}
           <div className="einheit-stat">
             <span className="einheit-stat-label">Bezahlt</span>
-            <span className={`einheit-stat-value${over ? ' warn-text' : ''}`}>{formatCurrency(bezahlt)}</span>
+            <span className={`einheit-stat-value${over ? ' warn-text' : ''}`}>
+              {bezahlt > 0 ? formatCurrency(bezahlt) : bezahltMarkiert ? 'Markiert' : formatCurrency(0)}
+            </span>
           </div>
           <div className="einheit-stat">
             <span className="einheit-stat-label">Offen</span>
@@ -178,7 +181,7 @@ export default function TradeDetail({
           <div className="budget-bar" style={{ marginTop: 8 }}>
             <div
               className="budget-bar-fill"
-              style={{ width: `${pct}%`, background: getGewerkBarColor(gewerk.status, bezahlt) }}
+              style={{ width: `${pct}%`, background: getGewerkBarColor(gewerk.status, bezahlt, bezahltMarkiert) }}
             />
           </div>
         )}

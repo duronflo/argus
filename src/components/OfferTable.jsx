@@ -12,6 +12,7 @@ function AngebotForm({ initial, onSave, onCancel }) {
       titel: '',
       betragAngebot: '',
       bezahlt: '',
+      bezahltMarkiert: false,
       status: 'offen',
       notiz: '',
     }
@@ -27,6 +28,7 @@ function AngebotForm({ initial, onSave, onCancel }) {
       ...form,
       betragAngebot: parseFloat(form.betragAngebot) || 0,
       bezahlt: parseFloat(form.bezahlt) || 0,
+      bezahltMarkiert: !!form.bezahltMarkiert,
     });
   }
 
@@ -49,6 +51,12 @@ function AngebotForm({ initial, onSave, onCancel }) {
       <div className="form-row">
         <label className="form-label">Bezahlt (€)</label>
         <input className="input" type="number" step="0.01" min="0" value={form.bezahlt} onChange={(e) => set('bezahlt', e.target.value)} />
+      </div>
+      <div className="form-row">
+        <label className="status-filter-item">
+          <input type="checkbox" checked={!!form.bezahltMarkiert} onChange={(e) => set('bezahltMarkiert', e.target.checked)} />
+          Als bezahlt markiert
+        </label>
       </div>
       <div className="form-row">
         <label className="form-label">Status</label>
@@ -126,7 +134,7 @@ export default function OfferTable({ angebote, onAddAngebot, onEditAngebot, onDe
                   <td>{a.titel || '—'}</td>
                   <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
                   <td className="text-right">
-                    {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : '—'}
+                    {a.bezahlt > 0 ? formatCurrency(a.bezahlt) : a.bezahltMarkiert ? 'Markiert' : '—'}
                   </td>
                   <td><Badge status={a.status} small /></td>
                   <td>

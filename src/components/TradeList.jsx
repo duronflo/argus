@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
-import { getEffektivesGewerkBudget } from '../utils/calculations';
+import { getEffektivesGewerkBudget, isAngebotBezahltMarkiert } from '../utils/calculations';
 import { getGewerkBarColor } from '../utils/colors';
 
 function moveId(ids, draggedId, targetId) {
@@ -61,11 +61,12 @@ export default function TradeList({
   const tradeItems = sorted.map((g) => {
     const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
     const bezahlt = gwAngebote.reduce((s, a) => s + (a.bezahlt || 0), 0);
+    const bezahltMarkiert = gwAngebote.some((a) => isAngebotBezahltMarkiert(a));
     const geplant = getEffektivesGewerkBudget(g, angebote);
     const assignedUnits = einheiten
       ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
       : [];
-    return { g, gwAngebote, bezahlt, geplant, assignedUnits };
+    return { g, gwAngebote, bezahlt, bezahltMarkiert, geplant, assignedUnits };
   });
 
   function handleDrop(targetId) {
@@ -180,7 +181,7 @@ export default function TradeList({
               </tr>
             </thead>
             <tbody>
-              {tradeItems.map(({ g, gwAngebote, bezahlt, geplant, assignedUnits }) => (
+              {tradeItems.map(({ g, gwAngebote, bezahlt, bezahltMarkiert, geplant, assignedUnits }) => (
                 <tr
                   key={g.id}
                   className={`${selectedId === g.id ? 'gewerke-list-row--active ' : ''}${draggedId === g.id ? 'gewerke-list-row--dragging ' : ''}${dragOverId === g.id && draggedId && draggedId !== g.id ? 'gewerke-list-row--drag-over' : ''}`}
@@ -200,7 +201,7 @@ export default function TradeList({
                     <div className="gewerke-list-tags">
                       <CategoryTag kategorie={g.kategorie} small />
                       <Badge status={g.status} small />
-                      <GewerkPaymentBadge status={g.status} paid={bezahlt} small />
+                      <GewerkPaymentBadge status={g.status} paid={bezahlt} paidMarked={bezahltMarkiert} small />
                     </div>
                   </td>
                   <td>
@@ -211,7 +212,7 @@ export default function TradeList({
                     </div>
                   </td>
                   <td className="text-right">{geplant > 0 ? formatCurrency(geplant) : '—'}</td>
-                  <td className="text-right">{bezahlt > 0 ? formatCurrency(bezahlt) : '—'}</td>
+                  <td className="text-right">{bezahlt > 0 ? formatCurrency(bezahlt) : bezahltMarkiert ? 'Markiert' : '—'}</td>
                   <td className="text-right">{gwAngebote.length}</td>
                   <td>
                     <button
@@ -229,7 +230,7 @@ export default function TradeList({
         </div>
       ) : (
         <div className="gewerke-grid">
-          {tradeItems.map(({ g, gwAngebote, bezahlt, geplant, assignedUnits }) => {
+          {tradeItems.map(({ g, gwAngebote, bezahlt, bezahltMarkiert, geplant, assignedUnits }) => {
             return (
               <div
                 key={g.id}
@@ -249,7 +250,7 @@ export default function TradeList({
                     <div className="gewerke-card-tags">
                       <CategoryTag kategorie={g.kategorie} small />
                       <Badge status={g.status} small />
-                      <GewerkPaymentBadge status={g.status} paid={bezahlt} small />
+                      <GewerkPaymentBadge status={g.status} paid={bezahlt} paidMarked={bezahltMarkiert} small />
                     </div>
                   </div>
                   <button
@@ -276,7 +277,7 @@ export default function TradeList({
                   </div>
                   <div className="gewerke-card-stat">
                     <span className="gewerke-card-stat-label">Bezahlt</span>
-                    <span className="gewerke-card-stat-value">{bezahlt > 0 ? formatCurrency(bezahlt) : '—'}</span>
+                    <span className="gewerke-card-stat-value">{bezahlt > 0 ? formatCurrency(bezahlt) : bezahltMarkiert ? 'Markiert' : '—'}</span>
                   </div>
                   <div className="gewerke-card-stat">
                     <span className="gewerke-card-stat-label">Angebote</span>
@@ -290,7 +291,7 @@ export default function TradeList({
                         className="budget-bar-fill"
                         style={{
                           width: `${Math.min((geplant / maxPlanned) * 100, 100)}%`,
-                          background: getGewerkBarColor(g.status, bezahlt),
+                          background: getGewerkBarColor(g.status, bezahlt, bezahltMarkiert),
                         }}
                       />
                     </div>

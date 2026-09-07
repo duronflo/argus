@@ -12,10 +12,18 @@ export function sumBezahlt(angebote) {
   return angebote.reduce((sum, a) => sum + (a.bezahlt || 0), 0);
 }
 
+export function isAngebotBezahltMarkiert(angebot) {
+  return !!angebot?.bezahltMarkiert || (angebot?.bezahlt || 0) > 0;
+}
+
 export function sumGewerkBezahlt(gewerk, angebote = []) {
   return angebote
     .filter((a) => a.gewerkId === gewerk.id)
     .reduce((sum, a) => sum + (a.bezahlt || 0), 0);
+}
+
+export function isGewerkBezahltMarkiert(gewerk, angebote = []) {
+  return angebote.some((a) => a.gewerkId === gewerk.id && isAngebotBezahltMarkiert(a));
 }
 
 /**

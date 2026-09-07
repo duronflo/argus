@@ -86,6 +86,7 @@ function migrateData(parsed) {
     parsed.angebote = parsed.angebote.map((a) => {
       const a2 = { ...a };
       REMOVED_ANGEBOT_FIELDS.forEach((f) => delete a2[f]);
+      a2.bezahltMarkiert = !!a2.bezahltMarkiert;
       return a2;
     });
   }

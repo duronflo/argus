@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import Modal from './Modal';
 import { formatCurrency } from '../utils/dateUtils';
-import { calcEinheitGewerkStats, calcEinheitStats } from '../utils/calculations';
+import { calcEinheitGewerkStats, calcEinheitStats, isGewerkBezahltMarkiert } from '../utils/calculations';
 import { generateId } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
 import PieChart from './PieChart';
@@ -239,13 +239,25 @@ export default function EinheitenView({
                               </span>
                               <span className="einheit-trade-status">
                                 <Badge status={gewerk.status} small />
-                                <GewerkPaymentBadge status={gewerk.status} paid={tradeStats.sumBezahlt} small />
+                                <GewerkPaymentBadge
+                                  status={gewerk.status}
+                                  paid={tradeStats.sumBezahlt}
+                                  paidMarked={isGewerkBezahltMarkiert(gewerk, angebote)}
+                                  small
+                                />
                               </span>
                             </span>
                             <span className="einheit-trade-bar">
                               <span
                                 className="einheit-trade-bar-fill"
-                                style={{ width: `${width}%`, background: getGewerkBarColor(gewerk.status, tradeStats.sumBezahlt) }}
+                                style={{
+                                  width: `${width}%`,
+                                  background: getGewerkBarColor(
+                                    gewerk.status,
+                                    tradeStats.sumBezahlt,
+                                    isGewerkBezahltMarkiert(gewerk, angebote)
+                                  ),
+                                }}
                               />
                             </span>
                           </button>

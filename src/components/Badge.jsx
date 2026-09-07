@@ -13,9 +13,9 @@ const STATUS_CONFIG = {
   erledigt: { label: 'Erledigt', color: '#16a34a', bg: '#dcfce7' },
 };
 
-export function GewerkPaymentBadge({ status, paid = 0, small }) {
+export function GewerkPaymentBadge({ status, paid = 0, paidMarked = false, small }) {
   if (status !== 'fertig') return null;
-  const isPaid = paid > 0;
+  const isPaid = paidMarked || paid > 0;
   const color = isPaid ? '#16a34a' : '#d97706';
   return (
     <span

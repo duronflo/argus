@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isProjectBudgetDerived, sumGeplant, sumGewerkBezahlt } from '../utils/calculations';
+import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isGewerkBezahltMarkiert, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
 import { formatCurrency } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
 import { getGewerkBarColor } from '../utils/colors';
@@ -80,7 +80,7 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
               const over = budget > 0 && es.sumGeplant > budget;
               const unitGewerke = gewerke.filter((g) => (g.einheitIds || []).includes(id));
               const allFinished = unitGewerke.length > 0 && unitGewerke.every((g) => g.status === 'fertig');
-              const allFinishedAndPaid = allFinished && unitGewerke.every((g) => sumGewerkBezahlt(g, angebote) > 0);
+              const allFinishedAndPaid = allFinished && unitGewerke.every((g) => isGewerkBezahltMarkiert(g, angebote));
               return (
                 <div
                   key={id}

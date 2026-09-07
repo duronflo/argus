@@ -20,7 +20,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
       titel: '',
       betragAngebot: '',
       bezahlt: '',
-      bezahltMarkiert: false,
       status: 'offen',
       notiz: '',
       ...initial,
@@ -28,8 +27,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
         id: r.id || generateId('rg'),
         titel: r.titel || '',
         betrag: r.betrag ?? '',
-        bezahlt: r.bezahlt ?? '',
-        bezahltMarkiert: !!r.bezahltMarkiert,
         status: r.status || 'offen',
         notiz: r.notiz || '',
       })),
@@ -49,8 +46,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
           id: generateId('rg'),
           titel: '',
           betrag: '',
-          bezahlt: '',
-          bezahltMarkiert: false,
           status: 'offen',
           notiz: '',
         },
@@ -79,15 +74,13 @@ function AngebotForm({ initial, onSave, onCancel }) {
         ...r,
         titel: (r.titel || '').trim(),
         betrag: parseFloat(r.betrag) || 0,
-        bezahlt: parseFloat(r.bezahlt) || 0,
-        bezahltMarkiert: !!r.bezahltMarkiert,
+        bezahlt: r.status === 'bezahlt' ? (parseFloat(r.betrag) || 0) : 0,
       }))
-      .filter((r) => r.titel || r.betrag > 0 || r.bezahlt > 0 || r.notiz || r.bezahltMarkiert);
+      .filter((r) => r.titel || r.betrag > 0 || r.notiz);
     onSave({
       ...form,
       betragAngebot: parseFloat(form.betragAngebot) || 0,
       bezahlt: parseFloat(form.bezahlt) || 0,
-      bezahltMarkiert: !!form.bezahltMarkiert,
       rechnungen,
     });
   }
@@ -143,14 +136,8 @@ function AngebotForm({ initial, onSave, onCancel }) {
                 </div>
                 <div className="form-row">
                   <label className="form-label">Bezahlt (€)</label>
-                  <input className="input" type="number" step="0.01" min="0" value={r.bezahlt} onChange={(e) => setRechnung(r.id, 'bezahlt', e.target.value)} />
+                  <input className="input" disabled value={r.status === 'bezahlt' ? formatCurrency(parseFloat(r.betrag) || 0) : formatCurrency(0)} />
                 </div>
-              </div>
-              <div className="form-row">
-                <label className="status-filter-item">
-                  <input type="checkbox" checked={!!r.bezahltMarkiert} onChange={(e) => setRechnung(r.id, 'bezahltMarkiert', e.target.checked)} />
-                  Als bezahlt markiert
-                </label>
               </div>
               <div className="form-row">
                 <label className="form-label">Notiz</label>
@@ -160,12 +147,6 @@ function AngebotForm({ initial, onSave, onCancel }) {
             </div>
           ))
         )}
-      </div>
-      <div className="form-row">
-        <label className="status-filter-item">
-          <input type="checkbox" checked={!!form.bezahltMarkiert} onChange={(e) => set('bezahltMarkiert', e.target.checked)} />
-          Als bezahlt markiert
-        </label>
       </div>
       <div className="form-row">
         <label className="form-label">Status</label>

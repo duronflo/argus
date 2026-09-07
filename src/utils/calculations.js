@@ -23,12 +23,12 @@ export function sumAngebotRechnungsbetrag(angebot) {
 export function sumAngebotBezahlt(angebot) {
   const rechnungen = getAngebotRechnungen(angebot);
   if (rechnungen.length === 0) return angebot?.bezahlt || 0;
-  return rechnungen.reduce((sum, r) => sum + (r.bezahlt || 0), 0);
+  return rechnungen.reduce((sum, r) => sum + (r.status === 'bezahlt' ? (r.betrag || 0) : 0), 0);
 }
 
 export function isAngebotBezahltMarkiert(angebot) {
   const rechnungen = getAngebotRechnungen(angebot);
-  if (rechnungen.length > 0) return rechnungen.some((r) => !!r.bezahltMarkiert || (r.bezahlt || 0) > 0);
+  if (rechnungen.length > 0) return rechnungen.some((r) => r.status === 'bezahlt');
   return !!angebot?.bezahltMarkiert || (angebot?.bezahlt || 0) > 0;
 }
 

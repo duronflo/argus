@@ -91,9 +91,8 @@ function migrateData(parsed) {
         ? a2.rechnungen.map((r) => ({
           ...r,
           betrag: parseFloat(r.betrag) || 0,
-          bezahlt: parseFloat(r.bezahlt) || 0,
-          bezahltMarkiert: !!r.bezahltMarkiert,
-          status: r.status || 'offen',
+          bezahlt: (r.status === 'bezahlt' || !!r.bezahltMarkiert || (parseFloat(r.bezahlt) || 0) > 0) ? (parseFloat(r.betrag) || 0) : 0,
+          status: (r.status === 'bezahlt' || !!r.bezahltMarkiert || (parseFloat(r.bezahlt) || 0) > 0) ? 'bezahlt' : 'offen',
         }))
         : [];
       return a2;

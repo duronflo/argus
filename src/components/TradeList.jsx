@@ -2,30 +2,14 @@ import { useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
-import { getEffektivesGewerkBudget, isGewerkBezahltMarkiert, sumGewerkBezahlt } from '../utils/calculations';
 import { getGewerkBarColor } from '../utils/colors';
+import { moveId } from '../utils/moveId';
+import { useProject } from '../state/ProjectContext';
 
-function moveId(ids, draggedId, targetId) {
-  const arr = [...ids];
-  const from = arr.indexOf(draggedId);
-  if (from === -1 || draggedId === targetId) return arr;
-  arr.splice(from, 1);
-  const to = arr.indexOf(targetId);
-  arr.splice(to === -1 ? arr.length : to, 0, draggedId);
-  return arr;
-}
-
-export default function TradeList({
-  gewerke,
-  angebote,
-  rechnungen,
-  einheiten,
-  selectedId,
-  onSelect,
-  onAdd,
-  onDelete,
-  onReorder,
-}) {
+export default function TradeList({ onAdd, onDelete }) {
+  const { data, model, openGewerkId: selectedId, actions } = useProject();
+  const { gewerke, einheiten } = data;
+  const onSelect = actions.openGewerk;
   const [search, setSearch] = useState('');
   const [filterStatuses, setFilterStatuses] = useState([]);
   const [filterEinheit, setFilterEinheit] = useState('');
@@ -35,14 +19,14 @@ export default function TradeList({
   const [dragOverId, setDragOverId] = useState(null);
 
   const isCustomOrder = sortOrder === 'custom';
-  const maxPlanned = gewerke.reduce((max, g) => Math.max(max, getEffektivesGewerkBudget(g, angebote, rechnungen)), 0);
+  const maxPlanned = gewerke.reduce((max, g) => Math.max(max, model.gewerk(g.id).geplant), 0);
 
   const filtered = gewerke.filter((g) => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase()) ||
       g.kategorie.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatuses.length > 0 ? filterStatuses.includes(g.status) : true;
     const matchEinheit = filterEinheit
-      ? (g.einheitIds || []).includes(filterEinheit)
+      ? model.gewerk(g.id).einheitIds.includes(filterEinheit)
       : true;
     return matchSearch && matchStatus && matchEinheit;
   });
@@ -50,30 +34,23 @@ export default function TradeList({
   const sorted = isCustomOrder ? filtered : [...filtered].sort((a, b) => {
     const direction = sortOrder.endsWith('-desc') ? -1 : 1;
     if (sortOrder.startsWith('budget-')) {
-      return direction * (
-        getEffektivesGewerkBudget(a, angebote, rechnungen) - getEffektivesGewerkBudget(b, angebote, rechnungen)
-      );
+      return direction * (model.gewerk(a.id).geplant - model.gewerk(b.id).geplant);
     }
-    if (sortOrder.startsWith('units-')) return direction * ((a.einheitIds || []).length - (b.einheitIds || []).length);
+    if (sortOrder.startsWith('units-')) return direction * (model.gewerk(a.id).einheitIds.length - model.gewerk(b.id).einheitIds.length);
     const field = sortOrder.startsWith('category-') ? 'kategorie' : sortOrder.startsWith('status-') ? 'status' : 'name';
     return direction * a[field].localeCompare(b[field], 'de', { sensitivity: 'base' });
   });
 
   const tradeItems = sorted.map((g) => {
-    const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-    const bezahlt = sumGewerkBezahlt(g, angebote, rechnungen);
-    const bezahltMarkiert = isGewerkBezahltMarkiert(g, angebote, rechnungen);
-    const geplant = getEffektivesGewerkBudget(g, angebote, rechnungen);
-    const assignedUnits = einheiten
-      ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
-      : [];
-    return { g, gwAngebote, bezahlt, bezahltMarkiert, geplant, assignedUnits };
+    const stats = model.gewerk(g.id);
+    const assignedUnits = einheiten.filter((eh) => stats.einheitIds.includes(eh.id));
+    return { g, stats, assignedUnits };
   });
 
   function handleDrop(targetId) {
     if (draggedId && draggedId !== targetId) {
       const fullIds = gewerke.map((g) => g.id);
-      onReorder(moveId(fullIds, draggedId, targetId));
+      actions.reorderGewerke(moveId(fullIds, draggedId, targetId));
     }
     setDraggedId(null);
     setDragOverId(null);
@@ -182,7 +159,7 @@ export default function TradeList({
               </tr>
             </thead>
             <tbody>
-              {tradeItems.map(({ g, gwAngebote, bezahlt, bezahltMarkiert, geplant, assignedUnits }) => (
+              {tradeItems.map(({ g, stats, assignedUnits }) => (
                 <tr
                   key={g.id}
                   className={`${selectedId === g.id ? 'gewerke-list-row--active ' : ''}${draggedId === g.id ? 'gewerke-list-row--dragging ' : ''}${dragOverId === g.id && draggedId && draggedId !== g.id ? 'gewerke-list-row--drag-over' : ''}`}
@@ -202,7 +179,7 @@ export default function TradeList({
                     <div className="gewerke-list-tags">
                       <CategoryTag kategorie={g.kategorie} small />
                       <Badge status={g.status} small />
-                      <GewerkPaymentBadge status={g.status} paid={bezahlt} paidMarked={bezahltMarkiert} small />
+                      <GewerkPaymentBadge zahlstatus={stats.zahlstatus} small />
                     </div>
                   </td>
                   <td>
@@ -212,9 +189,9 @@ export default function TradeList({
                         : <span className="gewerke-list-muted">Keine</span>}
                     </div>
                   </td>
-                  <td className="text-right">{geplant > 0 ? formatCurrency(geplant) : '—'}</td>
-                  <td className="text-right">{bezahlt > 0 ? formatCurrency(bezahlt) : bezahltMarkiert ? 'Markiert' : '—'}</td>
-                  <td className="text-right">{gwAngebote.length}</td>
+                  <td className="text-right">{stats.geplant > 0 ? formatCurrency(stats.geplant) : '—'}</td>
+                  <td className="text-right">{stats.bezahlt > 0 ? formatCurrency(stats.bezahlt) : '—'}</td>
+                  <td className="text-right">{stats.anzahlAngebote}</td>
                   <td>
                     <button
                       className="btn-icon btn-icon--danger"
@@ -231,7 +208,7 @@ export default function TradeList({
         </div>
       ) : (
         <div className="gewerke-grid">
-          {tradeItems.map(({ g, gwAngebote, bezahlt, bezahltMarkiert, geplant, assignedUnits }) => {
+          {tradeItems.map(({ g, stats, assignedUnits }) => {
             return (
               <div
                 key={g.id}
@@ -251,7 +228,7 @@ export default function TradeList({
                     <div className="gewerke-card-tags">
                       <CategoryTag kategorie={g.kategorie} small />
                       <Badge status={g.status} small />
-                      <GewerkPaymentBadge status={g.status} paid={bezahlt} paidMarked={bezahltMarkiert} small />
+                      <GewerkPaymentBadge zahlstatus={stats.zahlstatus} small />
                     </div>
                   </div>
                   <button
@@ -274,25 +251,25 @@ export default function TradeList({
                 <div className="gewerke-card-stats">
                   <div className="gewerke-card-stat">
                     <span className="gewerke-card-stat-label">Geplant</span>
-                    <span className="gewerke-card-stat-value">{geplant > 0 ? formatCurrency(geplant) : '—'}</span>
+                    <span className="gewerke-card-stat-value">{stats.geplant > 0 ? formatCurrency(stats.geplant) : '—'}</span>
                   </div>
                   <div className="gewerke-card-stat">
                     <span className="gewerke-card-stat-label">Bezahlt</span>
-                    <span className="gewerke-card-stat-value">{bezahlt > 0 ? formatCurrency(bezahlt) : bezahltMarkiert ? 'Markiert' : '—'}</span>
+                    <span className="gewerke-card-stat-value">{stats.bezahlt > 0 ? formatCurrency(stats.bezahlt) : '—'}</span>
                   </div>
                   <div className="gewerke-card-stat">
                     <span className="gewerke-card-stat-label">Angebote</span>
-                    <span className="gewerke-card-stat-value">{gwAngebote.length}</span>
+                    <span className="gewerke-card-stat-value">{stats.anzahlAngebote}</span>
                   </div>
                 </div>
                 {maxPlanned > 0 && (
                   <div className="gewerke-card-budget">
-                    <div className="budget-bar" aria-label={`${g.status === 'fertig' ? 'Fertig' : 'Geplant'}: ${formatCurrency(geplant)}`}>
+                    <div className="budget-bar" aria-label={`${g.status === 'fertig' ? 'Fertig' : 'Geplant'}: ${formatCurrency(stats.geplant)}`}>
                       <div
                         className="budget-bar-fill"
                         style={{
-                          width: `${Math.min((geplant / maxPlanned) * 100, 100)}%`,
-                          background: getGewerkBarColor(g.status, bezahlt, bezahltMarkiert),
+                          width: `${Math.min((stats.geplant / maxPlanned) * 100, 100)}%`,
+                          background: getGewerkBarColor(g.status, stats.zahlstatus),
                         }}
                       />
                     </div>

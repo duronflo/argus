@@ -440,6 +440,10 @@ body {
   margin-bottom: 16px;
 }
 
+/* Filters share one row on wide screens and wrap on narrow ones */
+.trade-list-filters > .input { flex: 2 1 240px; width: auto; }
+.trade-list-filters > .select { flex: 1 1 160px; width: auto; }
+
 .status-filter-group {
   display: flex;
   flex-wrap: wrap;
@@ -1512,3 +1516,7 @@ body {
     max-width: 100vw;
   }
 }
+
+/* --- Invoice form ------------------------------------------ */
+.checkbox-row { display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
+.muted { color: #9ca3af; }

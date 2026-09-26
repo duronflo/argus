@@ -1,89 +1,29 @@
 import { useState } from 'react';
 import TradeList from './TradeList';
-import TradeDetail from './TradeDetail';
 import Modal from './Modal';
 import GewerkForm from './GewerkForm';
-import { generateId } from '../utils/dateUtils';
+import { useProject } from '../state/ProjectContext';
 
-export default function GewerkeDetails({
-  gewerke,
-  angebote,
-  rechnungen,
-  einheiten,
-  kategorien,
-  selectedGewerkId,
-  onSelectGewerk,
-  onAddGewerk,
-  onEditGewerk,
-  onDeleteGewerk,
-  onReorderGewerke,
-  onAddAngebot,
-  onEditAngebot,
-  onDeleteAngebot,
-  onAddRechnung,
-  onEditRechnung,
-  onDeleteRechnung,
-}) {
+export default function GewerkeDetails() {
+  const { data, actions } = useProject();
   const [showAddForm, setShowAddForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const kats = data.kategorien?.length > 0 ? data.kategorien : ['Sonstiges'];
 
-  const selectedGewerk = gewerke.find((g) => g.id === selectedGewerkId) || null;
-  const selectedAngebote = angebote.filter((a) => a.gewerkId === selectedGewerkId);
-  const selectedRechnungen = rechnungen.filter((r) => r.gewerkId === selectedGewerkId);
-
-  const kats = kategorien && kategorien.length > 0 ? kategorien : ['Sonstiges'];
-
-  function handleAddGewerk(data) {
-    onAddGewerk({ ...data, id: generateId('gw') });
+  function handleAddGewerk(gewerk) {
+    const id = actions.save('gewerke', gewerk);
     setShowAddForm(false);
-  }
-
-  function handleDeleteGewerk(id) {
-    setDeleteConfirm(id);
-  }
-
-  function confirmDelete() {
-    onDeleteGewerk(deleteConfirm);
-    setDeleteConfirm(null);
+    actions.openGewerk(id);
   }
 
   return (
     <div className="gewerke-details">
-      <TradeList
-        gewerke={gewerke}
-        angebote={angebote}
-        rechnungen={rechnungen}
-        einheiten={einheiten}
-        selectedId={selectedGewerkId}
-        onSelect={onSelectGewerk}
-        onAdd={() => setShowAddForm(true)}
-        onDelete={handleDeleteGewerk}
-        onReorder={onReorderGewerke}
-      />
-
-      {selectedGewerk && (
-        <Modal title={selectedGewerk.name} onClose={() => onSelectGewerk(null)} width={820}>
-          <TradeDetail
-            gewerk={selectedGewerk}
-            angebote={selectedAngebote}
-            rechnungen={selectedRechnungen}
-            einheiten={einheiten}
-            kategorien={kats}
-            onEditGewerk={onEditGewerk}
-            onAddAngebot={(data) => onAddAngebot({ ...data, id: generateId('ao'), gewerkId: selectedGewerkId })}
-            onEditAngebot={onEditAngebot}
-            onDeleteAngebot={onDeleteAngebot}
-            onAddRechnung={(data) => onAddRechnung({ ...data, gewerkId: selectedGewerkId })}
-            onEditRechnung={onEditRechnung}
-            onDeleteRechnung={onDeleteRechnung}
-          />
-        </Modal>
-      )}
+      <TradeList onAdd={() => setShowAddForm(true)} onDelete={setDeleteConfirm} />
 
       {showAddForm && (
         <Modal title="Neues Gewerk" onClose={() => setShowAddForm(false)}>
           <GewerkForm
-            einheiten={einheiten}
+            einheiten={data.einheiten}
             kategorien={kats}
             onSave={handleAddGewerk}
             onCancel={() => setShowAddForm(false)}
@@ -93,10 +33,10 @@ export default function GewerkeDetails({
 
       {deleteConfirm && (
         <Modal title="Gewerk löschen?" onClose={() => setDeleteConfirm(null)} width={380}>
-          <p>Soll dieses Gewerk inkl. aller Angebote wirklich gelöscht werden?</p>
+          <p>Soll dieses Gewerk inkl. aller Angebote und Rechnungen wirklich gelöscht werden?</p>
           <div className="form-actions">
             <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>Abbrechen</button>
-            <button className="btn btn-danger" onClick={confirmDelete}>Löschen</button>
+            <button className="btn btn-danger" onClick={() => { actions.remove('gewerke', deleteConfirm); setDeleteConfirm(null); }}>Löschen</button>
           </div>
         </Modal>
       )}

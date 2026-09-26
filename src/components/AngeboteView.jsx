@@ -2,19 +2,12 @@ import { useMemo, useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
-import { calcGesamtStats, isAngebotBezahltMarkiert, isGewerkBezahltMarkiert, sumAngebotBezahlt, sumGewerkBezahlt } from '../utils/calculations';
+import { moveId } from '../utils/moveId';
+import { useProject } from '../state/ProjectContext';
 
-function moveId(ids, draggedId, targetId) {
-  const arr = [...ids];
-  const from = arr.indexOf(draggedId);
-  if (from === -1 || draggedId === targetId) return arr;
-  arr.splice(from, 1);
-  const to = arr.indexOf(targetId);
-  arr.splice(to === -1 ? arr.length : to, 0, draggedId);
-  return arr;
-}
-
-export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten, onNavigate, onReorderGewerke }) {
+export default function AngeboteView() {
+  const { data, model, actions } = useProject();
+  const { gewerke, angebote, einheiten } = data;
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEinheit, setFilterEinheit] = useState('');
@@ -23,7 +16,7 @@ export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten,
   const [dragOverId, setDragOverId] = useState(null);
 
   const isCustomOrder = sortOrder === 'custom';
-  const stats = useMemo(() => calcGesamtStats(angebote, rechnungen), [angebote, rechnungen]);
+  const stats = model.projekt;
 
   const filtered = useMemo(() => {
     return angebote.filter((a) => {
@@ -34,11 +27,11 @@ export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten,
         (gewerk?.name || '').toLowerCase().includes(search.toLowerCase());
       const matchStatus = filterStatus ? a.status === filterStatus : true;
       const matchEinheit = filterEinheit
-        ? (gewerk?.einheitIds || []).includes(filterEinheit)
+        ? model.gewerk(gewerk?.id).einheitIds.includes(filterEinheit)
         : true;
       return matchSearch && matchStatus && matchEinheit;
     });
-  }, [angebote, gewerke, search, filterStatus, filterEinheit]);
+  }, [angebote, gewerke, model, search, filterStatus, filterEinheit]);
 
   // Group by gewerk
   const grouped = useMemo(() => {
@@ -78,7 +71,7 @@ export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten,
   function handleDropOnGroup(targetGewerkId) {
     if (draggedId && targetGewerkId && draggedId !== targetGewerkId) {
       const fullIds = gewerke.map((g) => g.id);
-      onReorderGewerke(moveId(fullIds, draggedId, targetGewerkId));
+      actions.reorderGewerke(moveId(fullIds, draggedId, targetGewerkId));
     }
     setDraggedId(null);
     setDragOverId(null);
@@ -91,11 +84,15 @@ export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten,
       <div className="stats-row">
         <div className="stat-chip">
           <span className="stat-chip-label">Summe Angebote</span>
-          <span className="stat-chip-value">{formatCurrency(stats.sumAngebote)}</span>
+          <span className="stat-chip-value">{formatCurrency(stats.summeAngebote)}</span>
         </div>
         <div className="stat-chip">
-          <span className="stat-chip-label">Bezahlt</span>
-          <span className="stat-chip-value">{formatCurrency(stats.sumBezahlt)}</span>
+          <span className="stat-chip-label">Davon ausgewählt</span>
+          <span className="stat-chip-value">{formatCurrency(stats.summeAusgewaehlt)}</span>
+        </div>
+        <div className="stat-chip">
+          <span className="stat-chip-label">Offene Angebote</span>
+          <span className="stat-chip-value">{stats.offeneAngebote}</span>
         </div>
       </div>
 
@@ -141,7 +138,7 @@ export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten,
         grouped.map(([gewerkId, items]) => {
           const gewerk = gewerke.find((g) => g.id === gewerkId);
           const assignedUnits = einheiten && gewerk
-            ? einheiten.filter((eh) => (gewerk.einheitIds || []).includes(eh.id))
+            ? einheiten.filter((eh) => model.gewerk(gewerk.id).einheitIds.includes(eh.id))
             : [];
           const sumGroup = items.reduce((s, a) => s + (a.betragAngebot || 0), 0);
           return (
@@ -151,7 +148,7 @@ export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten,
             >
               <div
                 className="angebote-group-header"
-                onClick={() => gewerk && onNavigate('gewerke', gewerk.id)}
+                onClick={() => gewerk && actions.openGewerk(gewerk.id)}
                 style={{ cursor: gewerk ? 'pointer' : undefined }}
                 draggable={isCustomOrder && !!gewerk}
                 onDragStart={(e) => { e.stopPropagation(); setDraggedId(gewerkId); }}
@@ -165,12 +162,7 @@ export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten,
                 {gewerk && <CategoryTag kategorie={gewerk.kategorie} small />}
                 {gewerk && <Badge status={gewerk.status} small />}
                 {gewerk && (
-                  <GewerkPaymentBadge
-                    status={gewerk.status}
-                    paid={sumGewerkBezahlt(gewerk, angebote, rechnungen)}
-                    paidMarked={isGewerkBezahltMarkiert(gewerk, angebote, rechnungen)}
-                    small
-                  />
+                  <GewerkPaymentBadge zahlstatus={model.gewerk(gewerk.id).zahlstatus} small />
                 )}
                 {assignedUnits.map((eh) => (
                   <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>
@@ -185,21 +177,21 @@ export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten,
                       <th>Anbieter</th>
                       <th>Titel</th>
                       <th className="text-right">Angebot</th>
-                      <th className="text-right">Bezahlt</th>
+                      <th className="text-right">Rechnungen</th>
                       <th>Status</th>
                       <th>Notiz</th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((a) => {
-                      const bezahlt = sumAngebotBezahlt(a);
+                      const aStats = model.angebot(a.id);
                       return (
                       <tr key={a.id} className={a.status === 'ausgewählt' ? 'row--selected' : a.status === 'abgelehnt' ? 'row--rejected' : ''}>
                         <td><strong>{a.anbieter}</strong></td>
                         <td>{a.titel || '—'}</td>
                         <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
                         <td className="text-right">
-                          {bezahlt > 0 ? formatCurrency(bezahlt) : isAngebotBezahltMarkiert(a) ? 'Markiert' : '—'}
+                          {aStats.anzahlRechnungen > 0 ? `${aStats.anzahlRechnungen} · ${formatCurrency(aStats.summeRechnungen)}` : '—'}
                         </td>
                         <td><Badge status={a.status} small /></td>
                         <td className="note-cell">{a.notiz || '—'}</td>

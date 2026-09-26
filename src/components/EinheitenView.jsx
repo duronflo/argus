@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
 import Modal from './Modal';
 import { formatCurrency } from '../utils/dateUtils';
-import { calcEinheitGewerkStats, calcEinheitStats, isGewerkBezahltMarkiert } from '../utils/calculations';
-import { generateId } from '../utils/dateUtils';
 import BudgetOverview from './BudgetOverview';
 import PieChart from './PieChart';
 import { colorForKey, getGewerkBarColor } from '../utils/colors';
 import Badge, { GewerkPaymentBadge } from './Badge';
-import TradeDetail from './TradeDetail';
+import { useProject } from '../state/ProjectContext';
 
 function EinheitForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState(
@@ -36,29 +34,14 @@ function EinheitForm({ initial, onSave, onCancel }) {
   );
 }
 
-export default function EinheitenView({
-  einheiten,
-  gewerke,
-  angebote,
-  rechnungen,
-  kategorien,
-  onAddEinheit,
-  onEditEinheit,
-  onDeleteEinheit,
-  onEditGewerk,
-  onAddAngebot,
-  onEditAngebot,
-  onDeleteAngebot,
-  onAddRechnung,
-  onEditRechnung,
-  onDeleteRechnung,
-}) {
+export default function EinheitenView() {
+  const { data, model, actions } = useProject();
+  const { einheiten, gewerke } = data;
   const [showAddForm, setShowAddForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [sortOrder, setSortOrder] = useState('name-asc');
   const [tradeSortOrder, setTradeSortOrder] = useState('planned-desc');
-  const [selectedGewerkId, setSelectedGewerkId] = useState(null);
   const sortedEinheiten = [...einheiten].sort((a, b) => {
     const direction = sortOrder === 'name-desc' ? -1 : 1;
     if (sortOrder.startsWith('budget-')) return direction * ((a.budget || 0) - (b.budget || 0));
@@ -66,10 +49,7 @@ export default function EinheitenView({
   });
 
   const budgetCharts = useMemo(() => {
-    const unitStats = einheiten.map((eh) => ({
-      ...eh,
-      stats: calcEinheitStats(eh, gewerke, angebote, rechnungen),
-    }));
+    const unitStats = einheiten.map((eh) => ({ ...eh, stats: model.einheit(eh.id) }));
     return [
       {
         title: 'Gesamt-Budget',
@@ -79,50 +59,43 @@ export default function EinheitenView({
       {
         title: 'Geplant',
         emptyText: 'Noch keine geplanten Kosten vorhanden.',
-        segments: unitStats.map((eh) => ({ label: eh.name, value: eh.stats.sumGeplant, color: colorForKey(eh.id) })),
+        segments: unitStats.map((eh) => ({ label: eh.name, value: eh.stats.geplant, color: colorForKey(eh.id) })),
       },
       {
         title: 'Bezahlt',
         emptyText: 'Noch keine bezahlten Kosten vorhanden.',
-        segments: unitStats.map((eh) => ({ label: eh.name, value: eh.stats.sumBezahlt, color: colorForKey(eh.id) })),
+        segments: unitStats.map((eh) => ({ label: eh.name, value: eh.stats.bezahlt, color: colorForKey(eh.id) })),
       },
     ];
-  }, [einheiten, gewerke, angebote, rechnungen]);
+  }, [einheiten, model]);
 
-  const unitGewerke = useMemo(() => {
-    const result = new Map();
-    einheiten.forEach((eh) => {
-      const trades = gewerke
-        .filter((g) => (g.einheitIds || []).includes(eh.id))
-        .map((g) => ({
-          gewerk: g,
-          stats: calcEinheitGewerkStats(eh.id, g, angebote, rechnungen),
-        }));
-      result.set(eh.id, trades);
-    });
-    return result;
-  }, [einheiten, gewerke, angebote, rechnungen]);
+  // Per-unit share of each trade, as computed by the model.
+  function unitTrades(einheitId) {
+    return model.einheit(einheitId).gewerke
+      .map((stats) => ({ gewerk: gewerke.find((g) => g.id === stats.gewerkId), stats }))
+      .filter((t) => t.gewerk);
+  }
 
   function sortTrades(trades) {
     const direction = tradeSortOrder.endsWith('-desc') ? -1 : 1;
     return [...trades].sort((a, b) => {
       if (tradeSortOrder.startsWith('planned-')) {
-        return direction * (a.stats.sumGeplant - b.stats.sumGeplant);
+        return direction * (a.stats.geplant - b.stats.geplant);
       }
       if (tradeSortOrder.startsWith('paid-')) {
-        return direction * (a.stats.sumBezahlt - b.stats.sumBezahlt);
+        return direction * (a.stats.bezahlt - b.stats.bezahlt);
       }
       return direction * a.gewerk.name.localeCompare(b.gewerk.name, 'de', { sensitivity: 'base' });
     });
   }
 
-  function handleAdd(data) {
-    onAddEinheit({ ...data, id: generateId('eh') });
+  function handleAdd(einheit) {
+    actions.save('einheiten', einheit);
     setShowAddForm(false);
   }
 
-  function handleEdit(data) {
-    onEditEinheit({ ...editItem, ...data });
+  function handleEdit(einheit) {
+    actions.save('einheiten', { ...editItem, ...einheit });
     setEditItem(null);
   }
 
@@ -135,6 +108,14 @@ export default function EinheitenView({
           <option value="name-desc">Name (Z–A)</option>
           <option value="budget-asc">Budget (aufsteigend)</option>
           <option value="budget-desc">Budget (absteigend)</option>
+        </select>
+        <select className="select" value={tradeSortOrder} onChange={(e) => setTradeSortOrder(e.target.value)} aria-label="Gewerke in den Einheiten sortieren">
+          <option value="planned-desc">Gewerke: Geplant (absteigend)</option>
+          <option value="planned-asc">Gewerke: Geplant (aufsteigend)</option>
+          <option value="paid-desc">Gewerke: Bezahlt (absteigend)</option>
+          <option value="paid-asc">Gewerke: Bezahlt (aufsteigend)</option>
+          <option value="name-asc">Gewerke: Name (A–Z)</option>
+          <option value="name-desc">Gewerke: Name (Z–A)</option>
         </select>
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddForm(true)}>+ Neue Einheit</button>
       </div>
@@ -158,10 +139,10 @@ export default function EinheitenView({
       ) : (
         <div className="einheiten-list">
           {sortedEinheiten.map((eh) => {
-            const stats = calcEinheitStats(eh, gewerke, angebote, rechnungen);
-            const budgetOver = eh.budget > 0 && stats.sumGeplant > eh.budget;
-            const trades = sortTrades(unitGewerke.get(eh.id) || []);
-            const maxTradePlanned = trades.reduce((max, item) => Math.max(max, item.stats.sumGeplant), 0);
+            const stats = model.einheit(eh.id);
+            const budgetOver = eh.budget > 0 && stats.geplant > eh.budget;
+            const trades = sortTrades(unitTrades(eh.id));
+            const maxTradePlanned = trades.reduce((max, item) => Math.max(max, item.stats.geplant), 0);
 
             return (
               <div key={eh.id} className={`einheit-card${budgetOver ? ' einheit-card--warn' : ''}`}>
@@ -185,40 +166,27 @@ export default function EinheitenView({
                   </div>
                   <div className="einheit-stat">
                     <span className="einheit-stat-label">Geplant</span>
-                    <span className={`einheit-stat-value${budgetOver ? ' warn-text' : ''}`}>{formatCurrency(stats.sumGeplant)}</span>
+                    <span className={`einheit-stat-value${budgetOver ? ' warn-text' : ''}`}>{formatCurrency(stats.geplant)}</span>
                   </div>
                   <div className="einheit-stat">
                     <span className="einheit-stat-label">Bezahlt</span>
-                    <span className="einheit-stat-value">{formatCurrency(stats.sumBezahlt)}</span>
+                    <span className="einheit-stat-value">{formatCurrency(stats.bezahlt)}</span>
                   </div>
                   <div className="einheit-stat">
                     <span className="einheit-stat-label">Offen</span>
-                    <span className="einheit-stat-value">{formatCurrency(stats.sumOffen)}</span>
+                    <span className="einheit-stat-value">{formatCurrency(stats.offen)}</span>
                   </div>
                 </div>
 
                 <BudgetOverview
                   budget={eh.budget}
-                  planned={stats.sumGeplant}
-                  paid={stats.sumBezahlt}
+                  planned={stats.geplant}
+                  paid={stats.bezahlt}
                 />
 
                 <div className="einheit-trades">
                   <div className="einheit-trades-header">
                     <h4 className="subsection-title">Gewerke</h4>
-                    <select
-                      className="select select-sm einheit-trades-sort"
-                      value={tradeSortOrder}
-                      onChange={(e) => setTradeSortOrder(e.target.value)}
-                      aria-label={`${eh.name}: Gewerke sortieren`}
-                    >
-                      <option value="planned-desc">Geplant (absteigend)</option>
-                      <option value="planned-asc">Geplant (aufsteigend)</option>
-                      <option value="paid-desc">Bezahlt (absteigend)</option>
-                      <option value="paid-asc">Bezahlt (aufsteigend)</option>
-                      <option value="name-asc">Name (A–Z)</option>
-                      <option value="name-desc">Name (Z–A)</option>
-                    </select>
                   </div>
                   {trades.length === 0 ? (
                     <p className="empty-state einheit-trades-empty">Keine Gewerke zugewiesen.</p>
@@ -226,29 +194,24 @@ export default function EinheitenView({
                     <div className="einheit-trade-list">
                       {trades.map(({ gewerk, stats: tradeStats }) => {
                         const width = maxTradePlanned > 0
-                          ? Math.min((tradeStats.sumGeplant / maxTradePlanned) * 100, 100)
+                          ? Math.min((tradeStats.geplant / maxTradePlanned) * 100, 100)
                           : 0;
                         return (
                           <button
                             type="button"
                             className="einheit-trade-row"
                             key={gewerk.id}
-                            onClick={() => setSelectedGewerkId(gewerk.id)}
+                            onClick={() => actions.openGewerk(gewerk.id)}
                             title="Gewerk öffnen und bearbeiten"
                           >
                             <span className="einheit-trade-label">
                               <span className="einheit-trade-heading">
                                 <span className="einheit-trade-name">{gewerk.name}</span>
-                                <span className="einheit-trade-amount">{formatCurrency(tradeStats.sumGeplant)}</span>
+                                <span className="einheit-trade-amount">{formatCurrency(tradeStats.geplant)}</span>
                               </span>
                               <span className="einheit-trade-status">
                                 <Badge status={gewerk.status} small />
-                                <GewerkPaymentBadge
-                                  status={gewerk.status}
-                                  paid={tradeStats.sumBezahlt}
-                                  paidMarked={isGewerkBezahltMarkiert(gewerk, angebote, rechnungen)}
-                                  small
-                                />
+                                <GewerkPaymentBadge zahlstatus={model.gewerk(gewerk.id).zahlstatus} small />
                               </span>
                             </span>
                             <span className="einheit-trade-bar">
@@ -256,11 +219,7 @@ export default function EinheitenView({
                                 className="einheit-trade-bar-fill"
                                 style={{
                                   width: `${width}%`,
-                                  background: getGewerkBarColor(
-                                    gewerk.status,
-                                    tradeStats.sumBezahlt,
-                                    isGewerkBezahltMarkiert(gewerk, angebote, rechnungen)
-                                  ),
+                                  background: getGewerkBarColor(gewerk.status, model.gewerk(gewerk.id).zahlstatus),
                                 }}
                               />
                             </span>
@@ -274,33 +233,6 @@ export default function EinheitenView({
             );
           })}
         </div>
-      )}
-
-      {selectedGewerkId && gewerke.some((g) => g.id === selectedGewerkId) && (
-        <Modal
-          title={gewerke.find((g) => g.id === selectedGewerkId).name}
-          onClose={() => setSelectedGewerkId(null)}
-          width={820}
-        >
-          <TradeDetail
-            gewerk={gewerke.find((g) => g.id === selectedGewerkId)}
-            angebote={angebote.filter((a) => a.gewerkId === selectedGewerkId)}
-            rechnungen={rechnungen.filter((r) => r.gewerkId === selectedGewerkId)}
-            einheiten={einheiten}
-            kategorien={kategorien}
-            onEditGewerk={onEditGewerk}
-            onAddAngebot={(data) => onAddAngebot({
-              ...data,
-              id: generateId('ao'),
-              gewerkId: selectedGewerkId,
-            })}
-            onEditAngebot={onEditAngebot}
-            onDeleteAngebot={onDeleteAngebot}
-            onAddRechnung={(data) => onAddRechnung({ ...data, gewerkId: selectedGewerkId })}
-            onEditRechnung={onEditRechnung}
-            onDeleteRechnung={onDeleteRechnung}
-          />
-        </Modal>
       )}
 
       {showAddForm && (
@@ -320,7 +252,7 @@ export default function EinheitenView({
           <p>Soll diese Einheit wirklich gelöscht werden? Gewerke bleiben erhalten, verlieren aber die Zuweisung zu dieser Einheit.</p>
           <div className="form-actions">
             <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>Abbrechen</button>
-            <button className="btn btn-danger" onClick={() => { onDeleteEinheit(deleteConfirm); setDeleteConfirm(null); }}>Löschen</button>
+            <button className="btn btn-danger" onClick={() => { actions.remove('einheiten', deleteConfirm); setDeleteConfirm(null); }}>Löschen</button>
           </div>
         </Modal>
       )}

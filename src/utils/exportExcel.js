@@ -1,5 +1,4 @@
 import ExcelJS from 'exceljs';
-import { calcEinheitStats, getAngebotRechnungen, getEffektivesGewerkBudget, sumAngebotBezahlt, sumAngebotRechnungsbetrag } from './calculations';
 
 function headerRow(sheet, headers) {
   const row = sheet.addRow(headers);
@@ -25,18 +24,22 @@ function currency(val) {
   return typeof val === 'number' ? val : 0;
 }
 
-export async function exportExcel(data, filename) {
+export async function exportExcel(data, model, filename) {
   const { projekt, einheiten = [], gewerke = [], angebote = [], rechnungen = [] } = data;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Argus';
   workbook.created = new Date();
+  const gewerkName = (id) => gewerke.find((g) => g.id === id)?.name || '';
+  const einheitName = (id) => einheiten.find((e) => e.id === id)?.name || '';
 
   // ── Sheet 1: Projekt ──────────────────────────────────────────────────────
   const sheetProjekt = workbook.addWorksheet('Projekt');
   headerRow(sheetProjekt, ['Feld', 'Wert']);
   sheetProjekt.addRow(['Name', projekt.name]);
   sheetProjekt.addRow(['Adresse', projekt.adresse || '']);
-  sheetProjekt.addRow(['Budget (€)', currency(projekt.budget)]);
+  sheetProjekt.addRow(['Budget (€)', currency(model.projekt.budget)]);
+  sheetProjekt.addRow(['Geplant (€)', currency(model.projekt.geplant)]);
+  sheetProjekt.addRow(['Bezahlt (€)', currency(model.projekt.bezahlt)]);
   sheetProjekt.addRow(['Notizen', projekt.notizen || '']);
   autoWidth(sheetProjekt);
 
@@ -44,13 +47,13 @@ export async function exportExcel(data, filename) {
   const sheetEinheiten = workbook.addWorksheet('Einheiten');
   headerRow(sheetEinheiten, ['Name', 'Budget (€)', 'Geplant (€)', 'Bezahlt (€)', 'Offen (€)', 'Notizen']);
   einheiten.forEach((eh) => {
-    const stats = calcEinheitStats(eh, gewerke, angebote, rechnungen);
+    const stats = model.einheit(eh.id);
     sheetEinheiten.addRow([
       eh.name,
       currency(eh.budget),
-      currency(stats.sumGeplant),
-      currency(stats.sumBezahlt),
-      currency(stats.sumOffen),
+      currency(stats.geplant),
+      currency(stats.bezahlt),
+      currency(stats.offen),
       eh.notizen || '',
     ]);
   });
@@ -59,21 +62,23 @@ export async function exportExcel(data, filename) {
   // ── Sheet 3: Gewerke ──────────────────────────────────────────────────────
   const sheetGewerke = workbook.addWorksheet('Gewerke');
   headerRow(sheetGewerke, [
-    'Name', 'Kategorie', 'Status',
-    'Geplantes Budget (€)',
-    'Zugeordnete Einheiten', 'Notizen',
+    'Name', 'Kategorie', 'Status', 'Budget (€)', 'Geplant (€)', 'Bezahlt (€)', 'Offen (€)',
+    'Verteilung auf Einheiten', 'Notizen',
   ]);
   gewerke.forEach((g) => {
-    const assignedNames = (g.einheitIds || [])
-      .map((eid) => einheiten.find((e) => e.id === eid)?.name)
-      .filter(Boolean)
+    const stats = model.gewerk(g.id);
+    const verteilung = Object.entries(stats.proEinheit)
+      .map(([id, s]) => `${einheitName(id)} ${Math.round(s.anteil * 100)} %`)
       .join(', ');
     sheetGewerke.addRow([
       g.name,
       g.kategorie || '',
       g.status || '',
-      currency(getEffektivesGewerkBudget(g, angebote, rechnungen)),
-      assignedNames,
+      currency(stats.budget),
+      currency(stats.geplant),
+      currency(stats.bezahlt),
+      currency(stats.offen),
+      verteilung,
       g.notizen || '',
     ]);
   });
@@ -82,41 +87,37 @@ export async function exportExcel(data, filename) {
   // ── Sheet 4: Angebote ─────────────────────────────────────────────────────
   const sheetAngebote = workbook.addWorksheet('Angebote');
   headerRow(sheetAngebote, [
-    'Gewerk', 'Anbieter', 'Titel',
-    'Angebotsbetrag (€)', 'Rechnungen', 'Rechnungsbetrag (€)', 'Bezahlt (€)',
-    'Status', 'Notiz',
+    'Gewerk', 'Anbieter', 'Titel', 'Angebotsbetrag (€)', 'Rechnungen', 'Rechnungsbetrag (€)', 'Status', 'Notiz',
   ]);
   angebote.forEach((a) => {
-    const gewerk = gewerke.find((g) => g.id === a.gewerkId);
-    const rechnungen = getAngebotRechnungen(a);
+    const stats = model.angebot(a.id);
     sheetAngebote.addRow([
-      gewerk ? gewerk.name : '',
+      gewerkName(a.gewerkId),
       a.anbieter || '',
       a.titel || '',
       currency(a.betragAngebot),
-      rechnungen.length,
-      currency(sumAngebotRechnungsbetrag(a)),
-      currency(sumAngebotBezahlt(a)),
+      stats.anzahlRechnungen,
+      currency(stats.summeRechnungen),
       a.status || '',
       a.notiz || '',
     ]);
   });
   autoWidth(sheetAngebote);
 
-  // ── Sheet 5: Direkte Rechnungen ────────────────────────────────────────────
+  // ── Sheet 5: Rechnungen ───────────────────────────────────────────────────
   const sheetRechnungen = workbook.addWorksheet('Rechnungen');
   headerRow(sheetRechnungen, [
-    'Gewerk', 'Lieferant', 'Titel', 'Betrag (€)', 'Bezahlt (€)', 'Status', 'Notiz',
+    'Gewerk', 'Einheit', 'Angebot', 'Lieferant', 'Titel', 'Betrag (€)', 'Bezahlt', 'Notiz',
   ]);
   rechnungen.forEach((r) => {
-    const gewerk = gewerke.find((g) => g.id === r.gewerkId);
     sheetRechnungen.addRow([
-      gewerk ? gewerk.name : '',
+      gewerkName(r.gewerkId),
+      r.einheitId ? einheitName(r.einheitId) : 'verteilt',
+      angebote.find((a) => a.id === r.angebotId)?.anbieter || '',
       r.anbieter || '',
       r.titel || '',
       currency(r.betrag),
-      currency(r.status === 'bezahlt' ? r.betrag : 0),
-      r.status || '',
+      r.bezahlt ? 'ja' : 'nein',
       r.notiz || '',
     ]);
   });

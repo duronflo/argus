@@ -51,7 +51,7 @@ export default function TradeList({
     const direction = sortOrder.endsWith('-desc') ? -1 : 1;
     if (sortOrder.startsWith('budget-')) {
       return direction * (
-      getEffektivesGewerkBudget(a, angebote, rechnungen) - getEffektivesGewerkBudget(b, angebote, rechnungen)
+        getEffektivesGewerkBudget(a, angebote, rechnungen) - getEffektivesGewerkBudget(b, angebote, rechnungen)
       );
     }
     if (sortOrder.startsWith('units-')) return direction * ((a.einheitIds || []).length - (b.einheitIds || []).length);

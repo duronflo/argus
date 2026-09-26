@@ -19,14 +19,18 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   watchtower:
-    build:
-      context: .
-      dockerfile: docker/watchtower.Dockerfile
+    # Watchtower wrapped with a small shell entrypoint that tees its output to
+    # /var/log/watchtower/watchtower.log (built by GitHub Actions, see
+    # docker/watchtower.Dockerfile).
+    image: ghcr.io/duronflo/argus-watchtower:latest
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - watchtower-logs:/var/log/watchtower
     environment:
+      # Docker Engine >= 29 rejects the default API version (1.25) used by
+      # containrrr/watchtower, which silently stops all auto-updates.
+      - DOCKER_API_VERSION=1.44
       - WATCHTOWER_LOG_LEVEL=debug
       - WATCHTOWER_LOG_FORMAT=Pretty
     # Poll every 5 minutes for new image digests

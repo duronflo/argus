@@ -45,3 +45,23 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Extract Watchtower metadata (tags, labels)
+        id: meta-watchtower
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-watchtower
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Build and push Watchtower image (with file logging)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/watchtower.Dockerfile
+          push: true
+          tags: ${{ steps.meta-watchtower.outputs.tags }}
+          labels: ${{ steps.meta-watchtower.outputs.labels }}
+          cache-from: type=gha,scope=watchtower
+          cache-to: type=gha,scope=watchtower,mode=max

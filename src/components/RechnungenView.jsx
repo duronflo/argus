@@ -7,7 +7,6 @@ const RECHNUNG_STATUSES = ['offen', 'bezahlt'];
 
 function RechnungForm({ initial, gewerke, fixedGewerkId, onSave, onCancel }) {
   const [form, setForm] = useState({
-    gewerkId: fixedGewerkId || '',
     anbieter: '',
     titel: '',
     betrag: '',

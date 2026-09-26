@@ -1517,6 +1517,40 @@ body {
   }
 }
 
+/* --- Version badge & changelog ----------------------------- */
+.project-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.version-badge {
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #6b7280;
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.version-badge:hover { background: #f1f5f9; color: #374151; }
+
+.version-current { margin: 0 0 14px; color: #374151; }
+.version-build { color: #9ca3af; }
+
+.changelog { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.changelog-entry { border-left: 3px solid #e5e7eb; padding-left: 12px; }
+.changelog-entry:first-child { border-left-color: #2563eb; }
+.changelog-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.changelog-version { font-weight: 700; color: #111827; font-variant-numeric: tabular-nums; }
+.changelog-title { color: #374151; }
+.changelog-date { margin-left: auto; font-size: 12px; color: #9ca3af; font-variant-numeric: tabular-nums; }
+.changelog-points { margin: 6px 0 0; padding-left: 18px; color: #4b5563; font-size: 13px; line-height: 1.5; }
+
 /* --- Invoice form ------------------------------------------ */
 .checkbox-row { display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
 .muted { color: #9ca3af; }

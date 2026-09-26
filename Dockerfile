@@ -10,6 +10,9 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+# Commit hash shown next to the version in the app header (set by CI)
+ARG BUILD_SHA=""
+ENV VITE_BUILD_SHA=$BUILD_SHA
 RUN npm run build
 
 # ── Stage 2: Install production dependencies (compiles native addons) ─────────

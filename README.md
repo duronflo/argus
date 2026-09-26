@@ -17,7 +17,7 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 
 - **Passwortschutz** – Cookie-basiert (100 Tage gültig), Initial-Passwort `0000`, änderbar über „Projekt bearbeiten"
 - **Erweiterbare Kategorien** – Kategorien (Dachdecker, Elektro, …) im Projekt-Dialog verwaltbar (hinzufügen / entfernen)
-- **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit; bezahlte Kosten ersetzen dabei den ursprünglichen Planwert
+- **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit; bei fertigen Gewerken ersetzt die Rechnungssumme den ursprünglichen Planwert
 - **Kostenverteilung je Einheit** – Pro Gewerk Aufteilung auf Einheiten per Schieberegler + Textbox (%), initial gleichmäßig
 - **Einheiten-Analyse** – Drei Budgetdiagramme und nach geplantem Betrag sortierte Gewerke mit farbigen Statusbalken je Einheit (blau geplant, grün fertig)
 
@@ -25,9 +25,10 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 - **Angebote** – Alle Angebote nach Gewerk gruppiert, filterbar nach Status oder Anbieter/Titel
 - **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung sowie Kachel- und Listenansicht mit Sortierung
 - Ampellogik / Badges für alle Status
-- Warnung wenn bezahlt > beauftragt oder Enddatum überschritten
+- Warnung, wenn mehr bezahlt als geplant wurde
 - Bestätigungsdialog vor dem Löschen
-- **Rechnungen** – Eigener Tab für Rechnungen, die unabhängig von einem Angebot direkt einem Gewerk zugeordnet werden (z. B. Materialeinkauf bei verschiedenen Lieferanten); fließen in Bezahlt-Summen und Budgets ein
+- **Rechnungen** – Einzige Stelle, an der Zahlungen erfasst werden. Jede Rechnung gehört zu einem Gewerk, optional zu einem Angebot und – wenn das Gewerk mehrere Einheiten betrifft – optional zu einer Einheit. Eigener Tab mit Filter nach Gewerk, Einheit und Status
+- **Versionsanzeige** – Version im Header, Klick zeigt die Versionshistorie
 - **JSON-Export & JSON-Import** für vollständige Datensicherung und -wiederherstellung
 - **Excel-Export** aller Daten (Projekt, Einheiten, Gewerke, Angebote, Rechnungen) als `.xlsx`
 - **Gesamtbudget aus Einheiten-Budgets** – wird automatisch aus den Einheiten abgeleitet
@@ -39,6 +40,19 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 - Node.js + Express + SQLite (`better-sqlite3`) (Backend)
 - Kein separates Datenbankserver nötig – SQLite läuft direkt im Container
 - Responsive für Desktop und Mobil
+
+### Aufbau
+
+| Ordner | Inhalt |
+|---|---|
+| `src/domain/` | Fachlogik ohne React: `migrate.js` (Datenmodell + Migration alter Stände), `model.js` (alle Berechnungen), `actions.js` (Änderungen inkl. Löschregeln) – mit Tests |
+| `src/state/ProjectContext.jsx` | Laden/Speichern und gemeinsamer Zustand; Komponenten nutzen `useProject()` |
+| `src/components/` | Oberfläche |
+| `src/version.js` | Versionsnummer und Versionshistorie |
+
+**Berechnungsregeln** (`src/domain/model.js`): *Bezahlt* = Summe der bezahlten Rechnungen. *Geplant* = Budget des Gewerks; bei fertigen Gewerken mit Rechnungen die Rechnungssumme. Einheiten erhalten Budget und Rechnungen ohne Einheit nach dem Verteilungsschlüssel des Gewerks, Rechnungen mit Einheit zu 100 %.
+
+Beim Wechsel auf ein neues Datenmodell legt der Server vorher eine Kopie des alten Stands in der Tabelle `project_backups` an.
 
 ## Lokale Entwicklung
 
@@ -53,6 +67,19 @@ npm run dev
 ```
 
 Dann http://localhost:5173 im Browser öffnen. Vite proxied `/api`-Anfragen automatisch an den Express-Server.
+
+## Tests
+
+```bash
+npm test
+```
+
+Läuft auch automatisch für jeden Pull Request (GitHub Actions, zusammen mit Lint und Build).
+
+## Neue Version
+
+1. In `src/version.js` oben einen Eintrag in `CHANGELOG` ergänzen.
+2. `version` in `package.json` auf dieselbe Nummer setzen (ein Test prüft das).
 
 ## Build
 

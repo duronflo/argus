@@ -5,6 +5,8 @@ import BudgetOverview from './BudgetOverview';
 import PieChart from './PieChart';
 import { colorForKey, getGewerkBarColor } from '../utils/colors';
 import Badge, { GewerkPaymentBadge } from './Badge';
+import { SortButton } from './SortHeader';
+import { sortBy, useSort } from '../utils/sort';
 import { useProject } from '../state/ProjectContext';
 
 function EinheitForm({ initial, onSave, onCancel }) {
@@ -40,13 +42,9 @@ export default function EinheitenView() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [sortOrder, setSortOrder] = useState('name-asc');
-  const [tradeSortOrder, setTradeSortOrder] = useState('planned-desc');
-  const sortedEinheiten = [...einheiten].sort((a, b) => {
-    const direction = sortOrder === 'name-desc' ? -1 : 1;
-    if (sortOrder.startsWith('budget-')) return direction * ((a.budget || 0) - (b.budget || 0));
-    return direction * a.name.localeCompare(b.name, 'de', { sensitivity: 'base' });
-  });
+  // One sort for the trade lists of all unit cards (largest planned amount first).
+  const tradeSorting = useSort({ key: 'geplant', dir: 'desc' });
+  const sortedEinheiten = sortBy(einheiten, { key: 'name', dir: 'asc' }, { name: (e) => e.name });
 
   const budgetCharts = useMemo(() => {
     const unitStats = einheiten.map((eh) => ({ ...eh, stats: model.einheit(eh.id) }));
@@ -77,15 +75,9 @@ export default function EinheitenView() {
   }
 
   function sortTrades(trades) {
-    const direction = tradeSortOrder.endsWith('-desc') ? -1 : 1;
-    return [...trades].sort((a, b) => {
-      if (tradeSortOrder.startsWith('planned-')) {
-        return direction * (a.stats.geplant - b.stats.geplant);
-      }
-      if (tradeSortOrder.startsWith('paid-')) {
-        return direction * (a.stats.bezahlt - b.stats.bezahlt);
-      }
-      return direction * a.gewerk.name.localeCompare(b.gewerk.name, 'de', { sensitivity: 'base' });
+    return sortBy(trades, tradeSorting.sort, {
+      name: (t) => t.gewerk.name,
+      geplant: (t) => t.stats.geplant,
     });
   }
 
@@ -103,20 +95,6 @@ export default function EinheitenView() {
     <div className="einheiten-view">
       <div className="einheiten-header">
         <h2 className="section-title">Einheiten / Kostenstellen</h2>
-        <select className="select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} aria-label="Einheiten sortieren">
-          <option value="name-asc">Name (A–Z)</option>
-          <option value="name-desc">Name (Z–A)</option>
-          <option value="budget-asc">Budget (aufsteigend)</option>
-          <option value="budget-desc">Budget (absteigend)</option>
-        </select>
-        <select className="select" value={tradeSortOrder} onChange={(e) => setTradeSortOrder(e.target.value)} aria-label="Gewerke in den Einheiten sortieren">
-          <option value="planned-desc">Gewerke: Geplant (absteigend)</option>
-          <option value="planned-asc">Gewerke: Geplant (aufsteigend)</option>
-          <option value="paid-desc">Gewerke: Bezahlt (absteigend)</option>
-          <option value="paid-asc">Gewerke: Bezahlt (aufsteigend)</option>
-          <option value="name-asc">Gewerke: Name (A–Z)</option>
-          <option value="name-desc">Gewerke: Name (Z–A)</option>
-        </select>
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddForm(true)}>+ Neue Einheit</button>
       </div>
 
@@ -186,7 +164,8 @@ export default function EinheitenView() {
 
                 <div className="einheit-trades">
                   <div className="einheit-trades-header">
-                    <h4 className="subsection-title">Gewerke</h4>
+                    <SortButton label="Gewerk" column="name" sorting={tradeSorting} />
+                    <SortButton label="Geplant" column="geplant" sorting={tradeSorting} firstDir="desc" />
                   </div>
                   {trades.length === 0 ? (
                     <p className="empty-state einheit-trades-empty">Keine Gewerke zugewiesen.</p>

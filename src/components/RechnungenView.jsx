@@ -4,6 +4,8 @@ import { getAnteile, getEinheitIds } from '../domain/model';
 import { useProject } from '../state/ProjectContext';
 import Badge from './Badge';
 import Modal from './Modal';
+import SortTh from './SortHeader';
+import { sortBy, useSort } from '../utils/sort';
 
 const EMPTY_RECHNUNG = {
   gewerkId: '', angebotId: null, einheitId: null, anbieter: '', titel: '', betrag: '', bezahlt: false, notiz: '',
@@ -125,8 +127,18 @@ export function RechnungenTable({ rechnungen, fixedGewerkId }) {
   const { gewerke, angebote, einheiten } = data;
   const [editing, setEditing] = useState(null); // null | 'new' | rechnung
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const sorting = useSort(null);
 
   const fixedGewerk = gewerke.find((g) => g.id === fixedGewerkId);
+  const sorted = sortBy(rechnungen, sorting.sort, {
+    gewerk: (r) => gewerke.find((g) => g.id === r.gewerkId)?.name,
+    anbieter: (r) => r.anbieter,
+    titel: (r) => r.titel,
+    angebot: (r) => angebote.find((a) => a.id === r.angebotId)?.anbieter,
+    einheit: (r) => (r.einheitId ? einheitName(einheiten, r.einheitId) : ''),
+    betrag: (r) => r.betrag || 0,
+    status: (r) => (r.bezahlt ? 1 : 0),
+  });
   const showEinheit = fixedGewerk ? getEinheitIds(fixedGewerk).length > 1 : einheiten.length > 0;
   const sumBetrag = rechnungen.reduce((s, r) => s + (r.betrag || 0), 0);
   const sumBezahlt = rechnungen.reduce((s, r) => s + (r.bezahlt ? r.betrag || 0 : 0), 0);
@@ -152,18 +164,18 @@ export function RechnungenTable({ rechnungen, fixedGewerkId }) {
           <table className="table">
             <thead>
               <tr>
-                {!fixedGewerkId && <th>Gewerk</th>}
-                <th>Lieferant</th>
-                <th>Titel</th>
-                <th>Angebot</th>
-                {showEinheit && <th>Einheit</th>}
-                <th className="text-right">Betrag</th>
-                <th>Status</th>
+                {!fixedGewerkId && <SortTh label="Gewerk" column="gewerk" sorting={sorting} />}
+                <SortTh label="Lieferant" column="anbieter" sorting={sorting} />
+                <SortTh label="Titel" column="titel" sorting={sorting} />
+                <SortTh label="Angebot" column="angebot" sorting={sorting} />
+                {showEinheit && <SortTh label="Einheit" column="einheit" sorting={sorting} />}
+                <SortTh label="Betrag" column="betrag" sorting={sorting} firstDir="desc" className="text-right" />
+                <SortTh label="Status" column="status" sorting={sorting} />
                 <th aria-label="Aktionen"></th>
               </tr>
             </thead>
             <tbody>
-              {rechnungen.map((r) => {
+              {sorted.map((r) => {
                 const gewerk = gewerke.find((g) => g.id === r.gewerkId);
                 const angebot = angebote.find((a) => a.id === r.angebotId);
                 return (

@@ -11,10 +11,9 @@
 // Rechnungsliste; alles andere wird hier in Rechnungen umgewandelt.
 
 import { DEFAULT_KATEGORIEN } from '../data/sampleData';
+import { ANGEBOT_STATUSES, GEWERK_STATUSES } from './constants';
 
 export const SCHEMA_VERSION = 2;
-
-const ANGEBOT_STATUSES = ['offen', 'ausgewählt', 'abgelehnt'];
 
 const num = (value) => parseFloat(value) || 0;
 
@@ -56,7 +55,8 @@ function migrateGewerk(gewerk, einheitIds) {
     ...omit(gewerk, REMOVED_GEWERK_FIELDS),
     name: text(gewerk.name),
     kategorie: gewerk.kategorie || 'Sonstiges',
-    status: gewerk.status || 'offen',
+    // Removed statuses (angefragt, angeboten) and unknown values become "offen".
+    status: GEWERK_STATUSES.includes(gewerk.status) ? gewerk.status : 'offen',
     geplantBudget: num(gewerk.geplantBudget),
     notizen: text(gewerk.notizen),
     einheitAnteile: hasShares

@@ -1,5 +1,5 @@
 # ── Stage 1: Build the React frontend ────────────────────────────────────────
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ ENV VITE_BUILD_SHA=$BUILD_SHA
 RUN npm run build
 
 # ── Stage 2: Install production dependencies (compiles native addons) ─────────
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 # ── Stage 3: Production image ─────────────────────────────────────────────────
-FROM node:20-alpine AS serve
+FROM node:22-alpine AS serve
 
 WORKDIR /app
 

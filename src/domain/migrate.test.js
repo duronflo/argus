@@ -104,6 +104,13 @@ describe('migrate', () => {
     expect(data.rechnungen[0]).not.toHaveProperty('status');
   });
 
+  it('maps removed trade statuses to "offen" and keeps the others', () => {
+    const statuses = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig', undefined, 'quatsch'];
+    const data = migrate({ projekt, gewerke: statuses.map((status, i) => ({ id: `g${i}`, status })), angebote: [] });
+    expect(data.gewerke.map((g) => g.status))
+      .toEqual(['offen', 'offen', 'offen', 'beauftragt', 'in Arbeit', 'fertig', 'offen', 'offen']);
+  });
+
   it('keeps the existing password rule (empty → 0000)', () => {
     expect(migrate({ projekt: { name: 'x' }, gewerke: [], angebote: [] }).projekt.password).toBe('0000');
     expect(migrate({ projekt, gewerke: [], angebote: [] }).projekt.password).toBe('1234');

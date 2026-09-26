@@ -53,9 +53,17 @@ export default function ProjektForm({ initial, einheiten = [], kategorien = [], 
         <textarea className="input textarea" rows={3} value={form.notizen} onChange={(e) => set('notizen', e.target.value)} />
       </div>
       <div className="form-row">
-        <label className="form-label">Passwort</label>
-        <input className="input" type="text" value={form.password || ''} onChange={(e) => set('password', e.target.value)} placeholder="Passwort (leer = kein Schutz)" />
-        <span className="form-hint">Ändert das Passwort für den Zugriffsschutz. Aktuelles Cookie bleibt bis zum nächsten Login gültig.</span>
+        <label className="form-label">Passwort *</label>
+        <input
+          className="input"
+          type="text"
+          required
+          pattern=".*\S.*"
+          title="Bitte ein Passwort eingeben."
+          value={form.password || ''}
+          onChange={(e) => set('password', e.target.value)}
+        />
+        <span className="form-hint">Wird beim Öffnen der App abgefragt. Nach einer Änderung muss sich jedes andere Gerät mit dem neuen Passwort anmelden.</span>
       </div>
       <div className="form-row">
         <label className="form-label">Kategorien (Gewerke)</label>

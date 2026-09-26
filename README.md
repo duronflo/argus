@@ -15,7 +15,7 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 
 ## Features
 
-- **Passwortschutz** – Cookie-basiert (100 Tage gültig), Initial-Passwort `0000`, änderbar über „Projekt bearbeiten"
+- **Passwortschutz** – Cookie-basiert (100 Tage gültig), Initial-Passwort `0000`, änderbar über „Projekt bearbeiten" (Pflichtfeld)
 - **Erweiterbare Kategorien** – Kategorien (Dachdecker, Elektro, …) im Projekt-Dialog verwaltbar (hinzufügen / entfernen)
 - **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit; bei fertigen Gewerken ersetzt die Rechnungssumme den ursprünglichen Planwert
 - **Kostenverteilung je Einheit** – Pro Gewerk Aufteilung auf Einheiten per Schieberegler + Textbox (%), initial gleichmäßig
@@ -23,7 +23,9 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 
 - **Dashboard** mit KPI-Karten (Gewerke, Angebote, Geplant, Bezahlt) und Budgetübersicht
 - **Angebote** – Alle Angebote nach Gewerk gruppiert, filterbar nach Status oder Anbieter/Titel
-- **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung sowie Kachel- und Listenansicht mit Sortierung
+- **Gewerke/Details** – CRUD für Gewerke und Angebote je Gewerk, inkl. Summenberechnung; Listenansicht mit eigener Reihenfolge (Drag & Drop)
+- **Sortieren** – in allen Tabellen per Klick auf die Spaltenüberschrift (erneut klicken: umgekehrt, dritter Klick: Ausgangsreihenfolge)
+- **Gewerk-Status** – offen, beauftragt, in Arbeit, fertig
 - Ampellogik / Badges für alle Status
 - Warnung, wenn mehr bezahlt als geplant wurde
 - Bestätigungsdialog vor dem Löschen
@@ -74,7 +76,7 @@ Dann http://localhost:5173 im Browser öffnen. Vite proxied `/api`-Anfragen auto
 npm test
 ```
 
-Läuft auch automatisch für jeden Pull Request (GitHub Actions, zusammen mit Lint und Build).
+Läuft auch automatisch für jeden Pull Request (GitHub Actions): Lint, Tests und Build sowie ein Docker-Build, der den Container startet und die API prüft.
 
 ## Neue Version
 

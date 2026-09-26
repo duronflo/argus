@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { equalSplit } from '../domain/migrate';
-
-const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
+import { GEWERK_STATUSES, statusLabel } from '../domain/constants';
 
 export default function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel, autoSave = false }) {
   const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
@@ -62,7 +61,7 @@ export default function GewerkForm({ initial, einheiten, kategorien, onSave, onC
           <label className="form-label">Status</label>
           <select className="select" value={form.status} onChange={(e) => set('status', e.target.value, true)}>
             {GEWERK_STATUSES.map((s) => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              <option key={s} value={s}>{statusLabel(s)}</option>
             ))}
           </select>
         </div>

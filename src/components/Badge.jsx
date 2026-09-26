@@ -1,8 +1,6 @@
 const STATUS_CONFIG = {
   // Gewerk status
   offen: { label: 'Offen', color: '#6b7280', bg: '#f3f4f6' },
-  angefragt: { label: 'Angefragt', color: '#2563eb', bg: '#dbeafe' },
-  angeboten: { label: 'Angeboten', color: '#d97706', bg: '#fef3c7' },
   beauftragt: { label: 'Beauftragt', color: '#7c3aed', bg: '#ede9fe' },
   'in Arbeit': { label: 'In Arbeit', color: '#0891b2', bg: '#cffafe' },
   fertig: { label: 'Fertig', color: '#16a34a', bg: '#dcfce7' },

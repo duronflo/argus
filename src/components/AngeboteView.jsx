@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
+import SortTh from './SortHeader';
 import { formatCurrency } from '../utils/dateUtils';
 import { moveId } from '../utils/moveId';
+import { sortBy, useSort } from '../utils/sort';
+import { ANGEBOT_STATUSES } from '../domain/constants';
 import { useProject } from '../state/ProjectContext';
 
 export default function AngeboteView() {
@@ -11,11 +14,11 @@ export default function AngeboteView() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEinheit, setFilterEinheit] = useState('');
-  const [sortOrder, setSortOrder] = useState('custom');
   const [draggedId, setDraggedId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
-
-  const isCustomOrder = sortOrder === 'custom';
+  // Groups follow the trade order (drag a group header to change it);
+  // column headers sort the offers inside each group.
+  const sorting = useSort(null);
   const stats = model.projekt;
 
   const filtered = useMemo(() => {
@@ -33,40 +36,23 @@ export default function AngeboteView() {
     });
   }, [angebote, gewerke, model, search, filterStatus, filterEinheit]);
 
-  // Group by gewerk
+  // Group by gewerk, in the trade order; offers of unknown trades come last.
   const grouped = useMemo(() => {
-    const map = {};
+    const map = new Map();
     filtered.forEach((a) => {
       const key = a.gewerkId || '__none__';
-      if (!map[key]) map[key] = [];
-      map[key].push(a);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(a);
     });
-
-    if (isCustomOrder) {
-      const orderedKeys = [...gewerke.map((g) => g.id), '__none__'];
-      return orderedKeys.filter((k) => map[k]).map((k) => [k, map[k]]);
-    }
-
-    Object.values(map).forEach((items) => {
-      items.sort((a, b) => {
-        const direction = sortOrder.endsWith('-desc') ? -1 : 1;
-        if (sortOrder.startsWith('amount-')) return direction * ((a.betragAngebot || 0) - (b.betragAngebot || 0));
-        const field = sortOrder.startsWith('anbieter-') ? 'anbieter' : sortOrder.startsWith('title-') ? 'titel' : 'status';
-        return direction * (a[field] || '').localeCompare(b[field] || '', 'de', { sensitivity: 'base' });
-      });
-    });
-
-    const entries = Object.entries(map);
-    if (sortOrder.startsWith('gewerk-')) {
-      const direction = sortOrder.endsWith('-desc') ? -1 : 1;
-      entries.sort(([keyA], [keyB]) => {
-        const nameA = gewerke.find((g) => g.id === keyA)?.name || '';
-        const nameB = gewerke.find((g) => g.id === keyB)?.name || '';
-        return direction * nameA.localeCompare(nameB, 'de', { sensitivity: 'base' });
-      });
-    }
-    return entries;
-  }, [filtered, gewerke, sortOrder, isCustomOrder]);
+    const orderedKeys = [...gewerke.map((g) => g.id).filter((id) => map.has(id)), ...[...map.keys()].filter((k) => !gewerke.some((g) => g.id === k))];
+    return orderedKeys.map((k) => [k, sortBy(map.get(k), sorting.sort, {
+      anbieter: (a) => a.anbieter,
+      titel: (a) => a.titel,
+      betrag: (a) => a.betragAngebot || 0,
+      rechnungen: (a) => model.angebot(a.id).summeRechnungen,
+      status: (a) => ANGEBOT_STATUSES.indexOf(a.status),
+    })]);
+  }, [filtered, gewerke, model, sorting.sort]);
 
   function handleDropOnGroup(targetGewerkId) {
     if (draggedId && targetGewerkId && draggedId !== targetGewerkId) {
@@ -103,27 +89,14 @@ export default function AngeboteView() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select className="select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+        <select className="select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} aria-label="Nach Status filtern">
           <option value="">Alle Status</option>
           <option value="offen">Offen</option>
           <option value="ausgewählt">Ausgewählt</option>
           <option value="abgelehnt">Abgelehnt</option>
         </select>
-        <select className="select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} aria-label="Angebote sortieren">
-          <option value="custom">Eigene Reihenfolge (ziehen zum Sortieren)</option>
-          <option value="gewerk-asc">Gewerk (A–Z)</option>
-          <option value="gewerk-desc">Gewerk (Z–A)</option>
-          <option value="anbieter-asc">Anbieter (A–Z)</option>
-          <option value="anbieter-desc">Anbieter (Z–A)</option>
-          <option value="title-asc">Titel (A–Z)</option>
-          <option value="title-desc">Titel (Z–A)</option>
-          <option value="amount-asc">Betrag (aufsteigend)</option>
-          <option value="amount-desc">Betrag (absteigend)</option>
-          <option value="status-asc">Status (A–Z)</option>
-          <option value="status-desc">Status (Z–A)</option>
-        </select>
         {einheiten && einheiten.length > 0 && (
-          <select className="select" value={filterEinheit} onChange={(e) => setFilterEinheit(e.target.value)}>
+          <select className="select" value={filterEinheit} onChange={(e) => setFilterEinheit(e.target.value)} aria-label="Nach Einheit filtern">
             <option value="">Alle Einheiten</option>
             {einheiten.map((eh) => (
               <option key={eh.id} value={eh.id}>{eh.name}</option>
@@ -131,6 +104,10 @@ export default function AngeboteView() {
           </select>
         )}
       </div>
+
+      <p className="form-hint trade-list-hint">
+        Gruppen ziehen ändert die Reihenfolge der Gewerke. Klick auf eine Spaltenüberschrift sortiert die Angebote.
+      </p>
 
       {grouped.length === 0 ? (
         <p className="empty-state">Keine Angebote gefunden.</p>
@@ -150,14 +127,14 @@ export default function AngeboteView() {
                 className="angebote-group-header"
                 onClick={() => gewerk && actions.openGewerk(gewerk.id)}
                 style={{ cursor: gewerk ? 'pointer' : undefined }}
-                draggable={isCustomOrder && !!gewerk}
+                draggable={!!gewerk}
                 onDragStart={(e) => { e.stopPropagation(); setDraggedId(gewerkId); }}
-                onDragOver={(e) => { if (isCustomOrder && gewerk) { e.preventDefault(); setDragOverId(gewerkId); } }}
+                onDragOver={(e) => { if (gewerk) { e.preventDefault(); setDragOverId(gewerkId); } }}
                 onDragLeave={() => setDragOverId((cur) => (cur === gewerkId ? null : cur))}
-                onDrop={(e) => { if (isCustomOrder && gewerk) { e.preventDefault(); e.stopPropagation(); handleDropOnGroup(gewerkId); } }}
+                onDrop={(e) => { if (gewerk) { e.preventDefault(); e.stopPropagation(); handleDropOnGroup(gewerkId); } }}
                 onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
               >
-                {isCustomOrder && gewerk && <span className="drag-handle" title="Ziehen zum Sortieren">⠿</span>}
+                {gewerk && <span className="drag-handle" title="Ziehen zum Sortieren">⠿</span>}
                 <span className="angebote-group-name">{gewerk ? gewerk.name : 'Unbekanntes Gewerk'}</span>
                 {gewerk && <CategoryTag kategorie={gewerk.kategorie} small />}
                 {gewerk && <Badge status={gewerk.status} small />}
@@ -174,11 +151,11 @@ export default function AngeboteView() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Anbieter</th>
-                      <th>Titel</th>
-                      <th className="text-right">Angebot</th>
-                      <th className="text-right">Rechnungen</th>
-                      <th>Status</th>
+                      <SortTh label="Anbieter" column="anbieter" sorting={sorting} />
+                      <SortTh label="Titel" column="titel" sorting={sorting} />
+                      <SortTh label="Angebot" column="betrag" sorting={sorting} firstDir="desc" className="text-right" />
+                      <SortTh label="Rechnungen" column="rechnungen" sorting={sorting} firstDir="desc" className="text-right" />
+                      <SortTh label="Status" column="status" sorting={sorting} />
                       <th>Notiz</th>
                     </tr>
                   </thead>

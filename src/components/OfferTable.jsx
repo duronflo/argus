@@ -3,8 +3,9 @@ import { formatCurrency } from '../utils/dateUtils';
 import { useProject } from '../state/ProjectContext';
 import Badge from './Badge';
 import Modal from './Modal';
-
-const ANGEBOT_STATUSES = ['offen', 'ausgewählt', 'abgelehnt'];
+import SortTh from './SortHeader';
+import { sortBy, useSort } from '../utils/sort';
+import { ANGEBOT_STATUSES, statusLabel } from '../domain/constants';
 
 function AngebotForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState({ anbieter: '', titel: '', betragAngebot: '', status: 'offen', notiz: '', ...initial });
@@ -32,7 +33,7 @@ function AngebotForm({ initial, onSave, onCancel }) {
           <label className="form-label">Status</label>
           <select className="select" value={form.status} onChange={(e) => set('status', e.target.value)}>
             {ANGEBOT_STATUSES.map((s) => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              <option key={s} value={s}>{statusLabel(s)}</option>
             ))}
           </select>
         </div>
@@ -52,9 +53,14 @@ function AngebotForm({ initial, onSave, onCancel }) {
 
 export default function OfferTable({ gewerkId }) {
   const { data, model, actions } = useProject();
-  const angebote = data.angebote
-    .filter((a) => a.gewerkId === gewerkId)
-    .sort((a, b) => (a.anbieter || '').localeCompare(b.anbieter || '', 'de', { sensitivity: 'base' }));
+  const sorting = useSort({ key: 'anbieter', dir: 'asc' });
+  const angebote = sortBy(data.angebote.filter((a) => a.gewerkId === gewerkId), sorting.sort, {
+    anbieter: (a) => a.anbieter,
+    titel: (a) => a.titel,
+    betrag: (a) => a.betragAngebot || 0,
+    rechnungen: (a) => model.angebot(a.id).summeRechnungen,
+    status: (a) => ANGEBOT_STATUSES.indexOf(a.status),
+  });
   const [editing, setEditing] = useState(null); // null | 'new' | angebot
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
@@ -72,11 +78,11 @@ export default function OfferTable({ gewerkId }) {
           <table className="table">
             <thead>
               <tr>
-                <th>Anbieter</th>
-                <th>Titel</th>
-                <th className="text-right">Angebot</th>
-                <th className="text-right">Rechnungen</th>
-                <th>Status</th>
+                <SortTh label="Anbieter" column="anbieter" sorting={sorting} />
+                <SortTh label="Titel" column="titel" sorting={sorting} />
+                <SortTh label="Angebot" column="betrag" sorting={sorting} firstDir="desc" className="text-right" />
+                <SortTh label="Rechnungen" column="rechnungen" sorting={sorting} firstDir="desc" className="text-right" />
+                <SortTh label="Status" column="status" sorting={sorting} />
                 <th aria-label="Aktionen"></th>
               </tr>
             </thead>

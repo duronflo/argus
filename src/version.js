@@ -11,7 +11,10 @@ export const CHANGELOG = [
       'Rechnungen können einer Einheit zugeordnet werden, wenn ein Gewerk mehrere Einheiten betrifft.',
       'Rechnungen-Tab zeigt alle Rechnungen, inkl. derer zu Angeboten; Filter nach Gewerk und Einheit.',
       'Fertige Gewerke gelten erst als bezahlt, wenn alle Rechnungen bezahlt sind.',
-      'Versionsanzeige im Header.',
+      'Gewerk-Status vereinfacht: offen, beauftragt, in Arbeit, fertig.',
+      'Sortieren per Klick auf die Spaltenüberschrift statt Auswahllisten; Gewerke nur noch als Liste.',
+      'Passwort ist ein Pflichtfeld.',
+      'Versionsanzeige im Header; Docker-Image auf Node 22.',
     ],
   },
   {

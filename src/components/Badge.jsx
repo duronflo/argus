@@ -9,6 +9,8 @@ const STATUS_CONFIG = {
   // Angebot status
   ausgewählt: { label: 'Ausgewählt', color: '#16a34a', bg: '#dcfce7' },
   abgelehnt: { label: 'Abgelehnt', color: '#dc2626', bg: '#fee2e2' },
+  // Rechnung status
+  bezahlt: { label: 'Bezahlt', color: '#16a34a', bg: '#dcfce7' },
   // Meilenstein status
   erledigt: { label: 'Erledigt', color: '#16a34a', bg: '#dcfce7' },
 };

@@ -8,12 +8,21 @@ export function getAngebotRechnungen(angebot) {
   return Array.isArray(angebot?.rechnungen) ? angebot.rechnungen : [];
 }
 
+export function getDirekteRechnungen(rechnungen = [], gewerkId) {
+  return rechnungen.filter((rechnung) => rechnung.gewerkId === gewerkId);
+}
+
+export function sumRechnungBezahlt(rechnung) {
+  return rechnung?.status === 'bezahlt' ? (rechnung.betrag || 0) : 0;
+}
+
 export function sumBeauftragt(angebote) {
   return angebote.reduce((sum, a) => sum + (a.betragBeauftragt || 0), 0);
 }
 
-export function sumBezahlt(angebote) {
-  return angebote.reduce((sum, a) => sum + sumAngebotBezahlt(a), 0);
+export function sumBezahlt(angebote, rechnungen = []) {
+  return angebote.reduce((sum, a) => sum + sumAngebotBezahlt(a), 0)
+    + rechnungen.reduce((sum, r) => sum + sumRechnungBezahlt(r), 0);
 }
 
 export function sumAngebotRechnungsbetrag(angebot) {
@@ -23,7 +32,7 @@ export function sumAngebotRechnungsbetrag(angebot) {
 export function sumAngebotBezahlt(angebot) {
   const rechnungen = getAngebotRechnungen(angebot);
   if (rechnungen.length === 0) return angebot?.bezahlt || 0;
-  return rechnungen.reduce((sum, r) => sum + (r.status === 'bezahlt' ? (r.betrag || 0) : 0), 0);
+  return rechnungen.reduce((sum, r) => sum + sumRechnungBezahlt(r), 0);
 }
 
 export function isAngebotBezahltMarkiert(angebot) {
@@ -32,14 +41,16 @@ export function isAngebotBezahltMarkiert(angebot) {
   return !!angebot?.bezahltMarkiert || (angebot?.bezahlt || 0) > 0;
 }
 
-export function sumGewerkBezahlt(gewerk, angebote = []) {
+export function sumGewerkBezahlt(gewerk, angebote = [], rechnungen = []) {
   return angebote
     .filter((a) => a.gewerkId === gewerk.id)
-    .reduce((sum, a) => sum + sumAngebotBezahlt(a), 0);
+    .reduce((sum, a) => sum + sumAngebotBezahlt(a), 0)
+    + getDirekteRechnungen(rechnungen, gewerk.id).reduce((sum, r) => sum + sumRechnungBezahlt(r), 0);
 }
 
-export function isGewerkBezahltMarkiert(gewerk, angebote = []) {
-  return angebote.some((a) => a.gewerkId === gewerk.id && isAngebotBezahltMarkiert(a));
+export function isGewerkBezahltMarkiert(gewerk, angebote = [], rechnungen = []) {
+  return angebote.some((a) => a.gewerkId === gewerk.id && isAngebotBezahltMarkiert(a))
+    || getDirekteRechnungen(rechnungen, gewerk.id).some((r) => r.status === 'bezahlt');
 }
 
 /**
@@ -47,14 +58,14 @@ export function isGewerkBezahltMarkiert(gewerk, angebote = []) {
  * finished and has a paid amount. Finished but unpaid trades keep their
  * original planned budget.
  */
-export function getEffektivesGewerkBudget(gewerk, angebote = []) {
+export function getEffektivesGewerkBudget(gewerk, angebote = [], rechnungen = []) {
   const geplant = gewerk.geplantBudget || 0;
-  const bezahlt = sumGewerkBezahlt(gewerk, angebote);
+  const bezahlt = sumGewerkBezahlt(gewerk, angebote, rechnungen);
   return gewerk.status === 'fertig' && bezahlt > 0 ? bezahlt : geplant;
 }
 
-export function sumGeplant(gewerke, angebote = []) {
-  return gewerke.reduce((sum, g) => sum + getEffektivesGewerkBudget(g, angebote), 0);
+export function sumGeplant(gewerke, angebote = [], rechnungen = []) {
+  return gewerke.reduce((sum, g) => sum + getEffektivesGewerkBudget(g, angebote, rechnungen), 0);
 }
 
 export function sumOffen(angebote) {
@@ -69,7 +80,7 @@ export function getAusgewaehltesAngebot(angebote, gewerkId) {
   return angebote.find((a) => a.gewerkId === gewerkId && a.status === 'ausgewählt') || null;
 }
 
-export function calcEinheitGewerkStats(einheitId, gewerk, angebote) {
+export function calcEinheitGewerkStats(einheitId, gewerk, angebote, rechnungen = []) {
   const anteile = gewerk.einheitAnteile || {};
   const ids = gewerk.einheitIds || [];
   // Normalize the split so old or manually edited data still accounts for the
@@ -78,8 +89,8 @@ export function calcEinheitGewerkStats(einheitId, gewerk, angebote) {
   const anteil = anteileSum > 0
     ? (anteile[einheitId] || 0) / anteileSum
     : 1 / (ids.length || 1);
-  const sumGeplant = getEffektivesGewerkBudget(gewerk, angebote) * anteil;
-  const sumBezahlt = sumGewerkBezahlt(gewerk, angebote) * anteil;
+  const sumGeplant = getEffektivesGewerkBudget(gewerk, angebote, rechnungen) * anteil;
+  const sumBezahlt = sumGewerkBezahlt(gewerk, angebote, rechnungen) * anteil;
 
   return {
     anteil,
@@ -89,23 +100,23 @@ export function calcEinheitGewerkStats(einheitId, gewerk, angebote) {
   };
 }
 
-export function calcGesamtStats(angebote) {
+export function calcGesamtStats(angebote, rechnungen = []) {
   return {
     sumAngebote: sumAngebote(angebote),
     sumBeauftragt: sumBeauftragt(angebote),
-    sumBezahlt: sumBezahlt(angebote),
+    sumBezahlt: sumBezahlt(angebote, rechnungen),
     sumOffen: sumOffen(angebote),
   };
 }
 
-export function calcEinheitStats(einheit, gewerke, angebote) {
+export function calcEinheitStats(einheit, gewerke, angebote, rechnungen = []) {
   const unitGewerke = gewerke.filter(
     (g) => g.einheitIds && g.einheitIds.includes(einheit.id)
   );
   let totalGeplant = 0;
   let totalBezahlt = 0;
   unitGewerke.forEach((g) => {
-    const stats = calcEinheitGewerkStats(einheit.id, g, angebote);
+    const stats = calcEinheitGewerkStats(einheit.id, g, angebote, rechnungen);
     totalGeplant += stats.sumGeplant;
     totalBezahlt += stats.sumBezahlt;
   });

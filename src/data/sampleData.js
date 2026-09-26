@@ -169,4 +169,15 @@ export const sampleData = {
       notiz: 'Fördermittel BAFA noch offen.',
     },
   ],
+  rechnungen: [
+    {
+      id: 'rgd-1',
+      gewerkId: 'gw-1',
+      anbieter: 'Voltus',
+      titel: 'Kabel & Sicherungen',
+      betrag: 980,
+      status: 'offen',
+      notiz: 'Materialeinkauf für die Elektroinstallation.',
+    },
+  ],
 };

@@ -26,7 +26,7 @@ function currency(val) {
 }
 
 export async function exportExcel(data, filename) {
-  const { projekt, einheiten = [], gewerke = [], angebote = [] } = data;
+  const { projekt, einheiten = [], gewerke = [], angebote = [], rechnungen = [] } = data;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Argus';
   workbook.created = new Date();
@@ -44,7 +44,7 @@ export async function exportExcel(data, filename) {
   const sheetEinheiten = workbook.addWorksheet('Einheiten');
   headerRow(sheetEinheiten, ['Name', 'Budget (€)', 'Geplant (€)', 'Bezahlt (€)', 'Offen (€)', 'Notizen']);
   einheiten.forEach((eh) => {
-    const stats = calcEinheitStats(eh, gewerke, angebote);
+    const stats = calcEinheitStats(eh, gewerke, angebote, rechnungen);
     sheetEinheiten.addRow([
       eh.name,
       currency(eh.budget),
@@ -72,7 +72,7 @@ export async function exportExcel(data, filename) {
       g.name,
       g.kategorie || '',
       g.status || '',
-      currency(getEffektivesGewerkBudget(g, angebote)),
+      currency(getEffektivesGewerkBudget(g, angebote, rechnungen)),
       assignedNames,
       g.notizen || '',
     ]);
@@ -102,6 +102,25 @@ export async function exportExcel(data, filename) {
     ]);
   });
   autoWidth(sheetAngebote);
+
+  // ── Sheet 5: Direkte Rechnungen ────────────────────────────────────────────
+  const sheetRechnungen = workbook.addWorksheet('Rechnungen');
+  headerRow(sheetRechnungen, [
+    'Gewerk', 'Lieferant', 'Titel', 'Betrag (€)', 'Bezahlt (€)', 'Status', 'Notiz',
+  ]);
+  rechnungen.forEach((r) => {
+    const gewerk = gewerke.find((g) => g.id === r.gewerkId);
+    sheetRechnungen.addRow([
+      gewerk ? gewerk.name : '',
+      r.anbieter || '',
+      r.titel || '',
+      currency(r.betrag),
+      currency(r.status === 'bezahlt' ? r.betrag : 0),
+      r.status || '',
+      r.notiz || '',
+    ]);
+  });
+  autoWidth(sheetRechnungen);
 
   // ── Write & download ──────────────────────────────────────────────────────
   const buffer = await workbook.xlsx.writeBuffer();

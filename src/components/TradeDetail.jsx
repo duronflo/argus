@@ -3,11 +3,12 @@ import CategoryTag from './CategoryTag';
 import OfferTable from './OfferTable';
 import GewerkForm from './GewerkForm';
 import PieChart from './PieChart';
+import { RechnungenSection } from './RechnungenView';
 import { formatCurrency } from '../utils/dateUtils';
 import { colorForKey, getGewerkBarColor } from '../utils/colors';
 import { calcEinheitGewerkStats, getEffektivesGewerkBudget, isGewerkBezahltMarkiert, sumGewerkBezahlt } from '../utils/calculations';
 
-function EinheitAnteileEditor({ gewerk, einheiten, angebote, onUpdate }) {
+function EinheitAnteileEditor({ gewerk, einheiten, angebote, rechnungen, onUpdate }) {
   const ids = gewerk.einheitIds || [];
   const anteile = gewerk.einheitAnteile || {};
 
@@ -56,7 +57,7 @@ function EinheitAnteileEditor({ gewerk, einheiten, angebote, onUpdate }) {
   const total = ids.reduce((s, id) => s + (anteile[id] || 0), 0);
   const pieSegments = assignedEinheiten.map((eh) => ({
     label: eh.name,
-    value: calcEinheitGewerkStats(eh.id, gewerk, angebote).sumGeplant,
+    value: calcEinheitGewerkStats(eh.id, gewerk, angebote, rechnungen).sumGeplant,
     color: colorForKey(eh.id),
   }));
 
@@ -114,12 +115,16 @@ function EinheitAnteileEditor({ gewerk, einheiten, angebote, onUpdate }) {
 export default function TradeDetail({
   gewerk,
   angebote,
+  rechnungen,
   einheiten,
   kategorien,
   onEditGewerk,
   onAddAngebot,
   onEditAngebot,
   onDeleteAngebot,
+  onAddRechnung,
+  onEditRechnung,
+  onDeleteRechnung,
 }) {
   const assignedEinheiten = einheiten
     ? einheiten.filter((eh) => (gewerk.einheitIds || []).includes(eh.id))
@@ -127,14 +132,14 @@ export default function TradeDetail({
 
   const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
 
-  const bezahlt = sumGewerkBezahlt(gewerk, angebote);
+  const bezahlt = sumGewerkBezahlt(gewerk, angebote, rechnungen);
   const originalGeplant = gewerk.geplantBudget || 0;
-  const geplant = getEffektivesGewerkBudget(gewerk, angebote);
+  const geplant = getEffektivesGewerkBudget(gewerk, angebote, rechnungen);
   const offen = Math.max(geplant - bezahlt, 0);
   const pct = geplant > 0 ? Math.min((bezahlt / geplant) * 100, 100) : 0;
   const over = originalGeplant > 0 && bezahlt > originalGeplant;
   const budgetWasOverridden = gewerk.status === 'fertig' && bezahlt > 0;
-  const bezahltMarkiert = isGewerkBezahltMarkiert(gewerk, angebote);
+  const bezahltMarkiert = isGewerkBezahltMarkiert(gewerk, angebote, rechnungen);
 
   return (
     <div className="trade-detail">
@@ -215,9 +220,19 @@ export default function TradeDetail({
           gewerk={gewerk}
           einheiten={einheiten}
           angebote={angebote}
+          rechnungen={rechnungen}
           onUpdate={onEditGewerk}
         />
       )}
+
+      <RechnungenSection
+        gewerke={[gewerk]}
+        rechnungen={rechnungen}
+        fixedGewerkId={gewerk.id}
+        onAddRechnung={onAddRechnung}
+        onEditRechnung={onEditRechnung}
+        onDeleteRechnung={onDeleteRechnung}
+      />
 
       <OfferTable
         angebote={angebote}

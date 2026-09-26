@@ -8,6 +8,7 @@ import { generateId } from '../utils/dateUtils';
 export default function GewerkeDetails({
   gewerke,
   angebote,
+  rechnungen,
   einheiten,
   kategorien,
   selectedGewerkId,
@@ -19,12 +20,16 @@ export default function GewerkeDetails({
   onAddAngebot,
   onEditAngebot,
   onDeleteAngebot,
+  onAddRechnung,
+  onEditRechnung,
+  onDeleteRechnung,
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const selectedGewerk = gewerke.find((g) => g.id === selectedGewerkId) || null;
   const selectedAngebote = angebote.filter((a) => a.gewerkId === selectedGewerkId);
+  const selectedRechnungen = rechnungen.filter((r) => r.gewerkId === selectedGewerkId);
 
   const kats = kategorien && kategorien.length > 0 ? kategorien : ['Sonstiges'];
 
@@ -47,6 +52,7 @@ export default function GewerkeDetails({
       <TradeList
         gewerke={gewerke}
         angebote={angebote}
+        rechnungen={rechnungen}
         einheiten={einheiten}
         selectedId={selectedGewerkId}
         onSelect={onSelectGewerk}
@@ -60,12 +66,16 @@ export default function GewerkeDetails({
           <TradeDetail
             gewerk={selectedGewerk}
             angebote={selectedAngebote}
+            rechnungen={selectedRechnungen}
             einheiten={einheiten}
             kategorien={kats}
             onEditGewerk={onEditGewerk}
             onAddAngebot={(data) => onAddAngebot({ ...data, id: generateId('ao'), gewerkId: selectedGewerkId })}
             onEditAngebot={onEditAngebot}
             onDeleteAngebot={onDeleteAngebot}
+            onAddRechnung={(data) => onAddRechnung({ ...data, gewerkId: selectedGewerkId })}
+            onEditRechnung={onEditRechnung}
+            onDeleteRechnung={onDeleteRechnung}
           />
         </Modal>
       )}

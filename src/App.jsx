@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import AngeboteView from './components/AngeboteView';
 import GewerkeDetails from './components/GewerkeDetails';
 import EinheitenView from './components/EinheitenView';
+import RechnungenView from './components/RechnungenView';
 import Modal from './components/Modal';
 import PasswordGate, { ArgusLogoSvg } from './components/PasswordGate';
 import { isAuthenticated, authenticate } from './utils/auth';
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { id: 'einheiten', label: '🏠 Einheiten' },
   { id: 'gewerke', label: '🔨 Gewerke' },
   { id: 'angebote', label: '📋 Angebote' },
+  { id: 'rechnungen', label: '📄 Rechnungen' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -58,10 +60,22 @@ function loadFromLocalStorage() {
 const REMOVED_GEWERK_FIELDS = ['geplanterStart', 'geplantesEnde', 'tatsaechlicherStart', 'tatsaechlichesEnde'];
 const REMOVED_ANGEBOT_FIELDS = ['datum', 'gueltigBis'];
 
+function normalizeRechnung(rechnung) {
+  const betrag = parseFloat(rechnung?.betrag) || 0;
+  const istBezahlt = rechnung?.status === 'bezahlt' || !!rechnung?.bezahltMarkiert || (parseFloat(rechnung?.bezahlt) || 0) > 0;
+  return {
+    ...rechnung,
+    betrag,
+    bezahlt: istBezahlt ? betrag : 0,
+    status: istBezahlt ? 'bezahlt' : 'offen',
+  };
+}
+
 function migrateData(parsed) {
   if (!parsed) return parsed;
   if (!parsed.einheiten) parsed.einheiten = [];
   if (!parsed.kategorien) parsed.kategorien = [...DEFAULT_KATEGORIEN];
+  if (!parsed.rechnungen) parsed.rechnungen = [];
   delete parsed.meilensteine;
   if (!parsed.projekt.password) parsed.projekt = { ...parsed.projekt, password: '0000' };
   if (parsed.gewerke) {
@@ -88,16 +102,20 @@ function migrateData(parsed) {
       REMOVED_ANGEBOT_FIELDS.forEach((f) => delete a2[f]);
       a2.bezahltMarkiert = !!a2.bezahltMarkiert;
       a2.rechnungen = Array.isArray(a2.rechnungen)
-        ? a2.rechnungen.map((r) => ({
-          ...r,
-          betrag: parseFloat(r.betrag) || 0,
-          bezahlt: (r.status === 'bezahlt' || !!r.bezahltMarkiert || (parseFloat(r.bezahlt) || 0) > 0) ? (parseFloat(r.betrag) || 0) : 0,
-          status: (r.status === 'bezahlt' || !!r.bezahltMarkiert || (parseFloat(r.bezahlt) || 0) > 0) ? 'bezahlt' : 'offen',
-        }))
+        ? a2.rechnungen.map(normalizeRechnung)
         : [];
       return a2;
     });
   }
+  parsed.rechnungen = Array.isArray(parsed.rechnungen)
+    ? parsed.rechnungen.map((rechnung) => ({
+      ...normalizeRechnung(rechnung),
+      gewerkId: rechnung?.gewerkId || '',
+      anbieter: rechnung?.anbieter || '',
+      titel: rechnung?.titel || '',
+      notiz: rechnung?.notiz || '',
+    })).filter((rechnung) => rechnung.gewerkId)
+    : [];
   return parsed;
 }
 
@@ -198,7 +216,14 @@ export default function App() {
   // Start with localStorage cache for instant render; server data overwrites it
   const [data, setData] = useState(() => loadFromLocalStorage() || sampleData);
 
-  const { projekt, gewerke, angebote, einheiten, kategorien } = data;
+  const {
+    projekt,
+    gewerke,
+    angebote,
+    einheiten,
+    kategorien,
+    rechnungen = [],
+  } = data;
 
   // Check cookie auth after data is loaded
   useEffect(() => {
@@ -260,6 +285,7 @@ export default function App() {
     updateData({
       gewerke: gewerke.filter((g) => g.id !== id),
       angebote: angebote.filter((a) => a.gewerkId !== id),
+      rechnungen: rechnungen.filter((r) => r.gewerkId !== id),
     });
     if (selectedGewerkId === id) setSelectedGewerkId(null);
   }
@@ -279,6 +305,17 @@ export default function App() {
   }
   function deleteAngebot(id) {
     updateData({ angebote: angebote.filter((a) => a.id !== id) });
+  }
+
+  // --- Direkte Rechnungen CRUD ---
+  function addRechnung(rechnung) {
+    updateData({ rechnungen: [...rechnungen, rechnung] });
+  }
+  function editRechnung(updated) {
+    updateData({ rechnungen: rechnungen.map((r) => r.id === updated.id ? updated : r) });
+  }
+  function deleteRechnung(id) {
+    updateData({ rechnungen: rechnungen.filter((r) => r.id !== id) });
   }
 
   // --- Einheiten CRUD ---
@@ -309,6 +346,7 @@ export default function App() {
       angebote: imported.angebote,
       einheiten: imported.einheiten || [],
       kategorien: imported.kategorien || [...DEFAULT_KATEGORIEN],
+      rechnungen: imported.rechnungen || [],
     }));
     setSelectedGewerkId(null);
     setActiveTab('dashboard');
@@ -322,6 +360,7 @@ export default function App() {
         angebote: [],
         einheiten: [],
         kategorien: [...DEFAULT_KATEGORIEN],
+        rechnungen: [],
       });
       setSelectedGewerkId(null);
       setActiveTab('dashboard');
@@ -336,6 +375,7 @@ export default function App() {
             projekt={projekt}
             gewerke={gewerke}
             angebote={angebote}
+            rechnungen={rechnungen}
             einheiten={einheiten}
             onNavigate={handleNavigate}
           />
@@ -345,6 +385,7 @@ export default function App() {
           <AngeboteView
             gewerke={gewerke}
             angebote={angebote}
+            rechnungen={rechnungen}
             einheiten={einheiten}
             onNavigate={handleNavigate}
             onReorderGewerke={reorderGewerke}
@@ -355,6 +396,7 @@ export default function App() {
           <GewerkeDetails
             gewerke={gewerke}
             angebote={angebote}
+            rechnungen={rechnungen}
             einheiten={einheiten}
             kategorien={kategorien || []}
             selectedGewerkId={selectedGewerkId}
@@ -366,6 +408,9 @@ export default function App() {
             onAddAngebot={addAngebot}
             onEditAngebot={editAngebot}
             onDeleteAngebot={deleteAngebot}
+            onAddRechnung={addRechnung}
+            onEditRechnung={editRechnung}
+            onDeleteRechnung={deleteRechnung}
           />
         );
       case 'einheiten':
@@ -374,6 +419,7 @@ export default function App() {
             einheiten={einheiten}
             gewerke={gewerke}
             angebote={angebote}
+            rechnungen={rechnungen}
             kategorien={kategorien || []}
             onAddEinheit={addEinheit}
             onEditEinheit={editEinheit}
@@ -382,6 +428,20 @@ export default function App() {
             onAddAngebot={addAngebot}
             onEditAngebot={editAngebot}
             onDeleteAngebot={deleteAngebot}
+            onAddRechnung={addRechnung}
+            onEditRechnung={editRechnung}
+            onDeleteRechnung={deleteRechnung}
+          />
+        );
+      case 'rechnungen':
+        return (
+          <RechnungenView
+            gewerke={gewerke}
+            rechnungen={rechnungen}
+            onNavigate={handleNavigate}
+            onAddRechnung={addRechnung}
+            onEditRechnung={editRechnung}
+            onDeleteRechnung={deleteRechnung}
           />
         );
       default:

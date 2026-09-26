@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Badge, { GewerkPaymentBadge } from './Badge';
 import CategoryTag from './CategoryTag';
 import { formatCurrency } from '../utils/dateUtils';
-import { getEffektivesGewerkBudget, isAngebotBezahltMarkiert, sumAngebotBezahlt } from '../utils/calculations';
+import { getEffektivesGewerkBudget, isGewerkBezahltMarkiert, sumGewerkBezahlt } from '../utils/calculations';
 import { getGewerkBarColor } from '../utils/colors';
 
 function moveId(ids, draggedId, targetId) {
@@ -18,6 +18,7 @@ function moveId(ids, draggedId, targetId) {
 export default function TradeList({
   gewerke,
   angebote,
+  rechnungen,
   einheiten,
   selectedId,
   onSelect,
@@ -34,7 +35,7 @@ export default function TradeList({
   const [dragOverId, setDragOverId] = useState(null);
 
   const isCustomOrder = sortOrder === 'custom';
-  const maxPlanned = gewerke.reduce((max, g) => Math.max(max, getEffektivesGewerkBudget(g, angebote)), 0);
+  const maxPlanned = gewerke.reduce((max, g) => Math.max(max, getEffektivesGewerkBudget(g, angebote, rechnungen)), 0);
 
   const filtered = gewerke.filter((g) => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -50,7 +51,7 @@ export default function TradeList({
     const direction = sortOrder.endsWith('-desc') ? -1 : 1;
     if (sortOrder.startsWith('budget-')) {
       return direction * (
-        getEffektivesGewerkBudget(a, angebote) - getEffektivesGewerkBudget(b, angebote)
+        getEffektivesGewerkBudget(a, angebote, rechnungen) - getEffektivesGewerkBudget(b, angebote, rechnungen)
       );
     }
     if (sortOrder.startsWith('units-')) return direction * ((a.einheitIds || []).length - (b.einheitIds || []).length);
@@ -60,9 +61,9 @@ export default function TradeList({
 
   const tradeItems = sorted.map((g) => {
     const gwAngebote = angebote.filter((a) => a.gewerkId === g.id);
-    const bezahlt = gwAngebote.reduce((s, a) => s + sumAngebotBezahlt(a), 0);
-    const bezahltMarkiert = gwAngebote.some((a) => isAngebotBezahltMarkiert(a));
-    const geplant = getEffektivesGewerkBudget(g, angebote);
+    const bezahlt = sumGewerkBezahlt(g, angebote, rechnungen);
+    const bezahltMarkiert = isGewerkBezahltMarkiert(g, angebote, rechnungen);
+    const geplant = getEffektivesGewerkBudget(g, angebote, rechnungen);
     const assignedUnits = einheiten
       ? einheiten.filter((eh) => (g.einheitIds || []).includes(eh.id))
       : [];

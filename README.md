@@ -27,8 +27,9 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 - Ampellogik / Badges für alle Status
 - Warnung wenn bezahlt > beauftragt oder Enddatum überschritten
 - Bestätigungsdialog vor dem Löschen
+- **Rechnungen** – Eigener Tab für Rechnungen, die unabhängig von einem Angebot direkt einem Gewerk zugeordnet werden (z. B. Materialeinkauf bei verschiedenen Lieferanten); fließen in Bezahlt-Summen und Budgets ein
 - **JSON-Export & JSON-Import** für vollständige Datensicherung und -wiederherstellung
-- **Excel-Export** aller Daten (Projekt, Einheiten, Gewerke, Angebote) als `.xlsx`
+- **Excel-Export** aller Daten (Projekt, Einheiten, Gewerke, Angebote, Rechnungen) als `.xlsx`
 - **Gesamtbudget aus Einheiten-Budgets** – wird automatisch aus den Einheiten abgeleitet
 - Datenhaltung auf dem Server (SQLite), localStorage als Offline-Cache
 
@@ -94,6 +95,16 @@ Die SQLite-Datenbank wird im Docker-Volume `argus-data` persistiert und überleb
 3. Watchtower erkennt das neue Image innerhalb von 5 Minuten
 4. Watchtower zieht das neue Image und startet den Container neu
 5. Datenbank bleibt erhalten (Volume)
+
+**Watchtower-Logdatei:**
+
+Watchtower läuft als eigenes Image `ghcr.io/duronflo/argus-watchtower` (siehe `docker/watchtower.Dockerfile`), das die Ausgabe zusätzlich in eine Logdatei im Volume `watchtower-logs` schreibt:
+
+```bash
+docker exec watchtower tail -n 100 /var/log/watchtower/watchtower.log
+```
+
+`DOCKER_API_VERSION=1.44` ist in `docker-compose.yml` gesetzt, da Docker Engine ab Version 29 die von Watchtower standardmäßig verwendete API-Version ablehnt.
 
 ### Erstes Setup auf dem Server
 

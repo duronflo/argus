@@ -40,6 +40,7 @@ export default function EinheitenView({
   einheiten,
   gewerke,
   angebote,
+  rechnungen,
   kategorien,
   onAddEinheit,
   onEditEinheit,
@@ -48,6 +49,9 @@ export default function EinheitenView({
   onAddAngebot,
   onEditAngebot,
   onDeleteAngebot,
+  onAddRechnung,
+  onEditRechnung,
+  onDeleteRechnung,
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -64,7 +68,7 @@ export default function EinheitenView({
   const budgetCharts = useMemo(() => {
     const unitStats = einheiten.map((eh) => ({
       ...eh,
-      stats: calcEinheitStats(eh, gewerke, angebote),
+      stats: calcEinheitStats(eh, gewerke, angebote, rechnungen),
     }));
     return [
       {
@@ -83,7 +87,7 @@ export default function EinheitenView({
         segments: unitStats.map((eh) => ({ label: eh.name, value: eh.stats.sumBezahlt, color: colorForKey(eh.id) })),
       },
     ];
-  }, [einheiten, gewerke, angebote]);
+  }, [einheiten, gewerke, angebote, rechnungen]);
 
   const unitGewerke = useMemo(() => {
     const result = new Map();
@@ -92,12 +96,12 @@ export default function EinheitenView({
         .filter((g) => (g.einheitIds || []).includes(eh.id))
         .map((g) => ({
           gewerk: g,
-          stats: calcEinheitGewerkStats(eh.id, g, angebote),
+          stats: calcEinheitGewerkStats(eh.id, g, angebote, rechnungen),
         }));
       result.set(eh.id, trades);
     });
     return result;
-  }, [einheiten, gewerke, angebote]);
+  }, [einheiten, gewerke, angebote, rechnungen]);
 
   function sortTrades(trades) {
     const direction = tradeSortOrder.endsWith('-desc') ? -1 : 1;
@@ -154,7 +158,7 @@ export default function EinheitenView({
       ) : (
         <div className="einheiten-list">
           {sortedEinheiten.map((eh) => {
-            const stats = calcEinheitStats(eh, gewerke, angebote);
+            const stats = calcEinheitStats(eh, gewerke, angebote, rechnungen);
             const budgetOver = eh.budget > 0 && stats.sumGeplant > eh.budget;
             const trades = sortTrades(unitGewerke.get(eh.id) || []);
             const maxTradePlanned = trades.reduce((max, item) => Math.max(max, item.stats.sumGeplant), 0);
@@ -242,7 +246,7 @@ export default function EinheitenView({
                                 <GewerkPaymentBadge
                                   status={gewerk.status}
                                   paid={tradeStats.sumBezahlt}
-                                  paidMarked={isGewerkBezahltMarkiert(gewerk, angebote)}
+                                  paidMarked={isGewerkBezahltMarkiert(gewerk, angebote, rechnungen)}
                                   small
                                 />
                               </span>
@@ -255,7 +259,7 @@ export default function EinheitenView({
                                   background: getGewerkBarColor(
                                     gewerk.status,
                                     tradeStats.sumBezahlt,
-                                    isGewerkBezahltMarkiert(gewerk, angebote)
+                                    isGewerkBezahltMarkiert(gewerk, angebote, rechnungen)
                                   ),
                                 }}
                               />
@@ -281,6 +285,7 @@ export default function EinheitenView({
           <TradeDetail
             gewerk={gewerke.find((g) => g.id === selectedGewerkId)}
             angebote={angebote.filter((a) => a.gewerkId === selectedGewerkId)}
+            rechnungen={rechnungen.filter((r) => r.gewerkId === selectedGewerkId)}
             einheiten={einheiten}
             kategorien={kategorien}
             onEditGewerk={onEditGewerk}
@@ -291,6 +296,9 @@ export default function EinheitenView({
             })}
             onEditAngebot={onEditAngebot}
             onDeleteAngebot={onDeleteAngebot}
+            onAddRechnung={(data) => onAddRechnung({ ...data, gewerkId: selectedGewerkId })}
+            onEditRechnung={onEditRechnung}
+            onDeleteRechnung={onDeleteRechnung}
           />
         </Modal>
       )}

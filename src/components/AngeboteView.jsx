@@ -14,7 +14,7 @@ function moveId(ids, draggedId, targetId) {
   return arr;
 }
 
-export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate, onReorderGewerke }) {
+export default function AngeboteView({ gewerke, angebote, rechnungen, einheiten, onNavigate, onReorderGewerke }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterEinheit, setFilterEinheit] = useState('');
@@ -23,7 +23,7 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate,
   const [dragOverId, setDragOverId] = useState(null);
 
   const isCustomOrder = sortOrder === 'custom';
-  const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
+  const stats = useMemo(() => calcGesamtStats(angebote, rechnungen), [angebote, rechnungen]);
 
   const filtered = useMemo(() => {
     return angebote.filter((a) => {
@@ -167,8 +167,8 @@ export default function AngeboteView({ gewerke, angebote, einheiten, onNavigate,
                 {gewerk && (
                   <GewerkPaymentBadge
                     status={gewerk.status}
-                    paid={sumGewerkBezahlt(gewerk, angebote)}
-                    paidMarked={isGewerkBezahltMarkiert(gewerk, angebote)}
+                    paid={sumGewerkBezahlt(gewerk, angebote, rechnungen)}
+                    paidMarked={isGewerkBezahltMarkiert(gewerk, angebote, rechnungen)}
                     small
                   />
                 )}

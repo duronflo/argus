@@ -14,9 +14,9 @@ function KpiCard({ label, value, sub, warn }) {
   );
 }
 
-export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNavigate }) {
-  const stats = useMemo(() => calcGesamtStats(angebote), [angebote]);
-  const planned = useMemo(() => sumGeplant(gewerke, angebote), [gewerke, angebote]);
+export default function Dashboard({ projekt, gewerke, angebote, rechnungen, einheiten, onNavigate }) {
+  const stats = useMemo(() => calcGesamtStats(angebote, rechnungen), [angebote, rechnungen]);
+  const planned = useMemo(() => sumGeplant(gewerke, angebote, rechnungen), [gewerke, angebote, rechnungen]);
   const effectiveBudget = useMemo(() => calcProjectBudget(projekt, einheiten), [projekt, einheiten]);
   const budgetDerived = useMemo(() => isProjectBudgetDerived(einheiten), [einheiten]);
 
@@ -35,9 +35,9 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
     if (!einheiten || einheiten.length === 0) return [];
     return einheiten.map((eh) => ({
       ...eh,
-      stats: calcEinheitStats(eh, gewerke, angebote),
+      stats: calcEinheitStats(eh, gewerke, angebote, rechnungen),
     }));
-  }, [einheiten, gewerke, angebote]);
+  }, [einheiten, gewerke, angebote, rechnungen]);
 
   return (
     <div className="dashboard">
@@ -80,7 +80,7 @@ export default function Dashboard({ projekt, gewerke, angebote, einheiten, onNav
               const over = budget > 0 && es.sumGeplant > budget;
               const unitGewerke = gewerke.filter((g) => (g.einheitIds || []).includes(id));
               const allFinished = unitGewerke.length > 0 && unitGewerke.every((g) => g.status === 'fertig');
-              const allFinishedAndPaid = allFinished && unitGewerke.every((g) => isGewerkBezahltMarkiert(g, angebote));
+              const allFinishedAndPaid = allFinished && unitGewerke.every((g) => isGewerkBezahltMarkiert(g, angebote, rechnungen));
               return (
                 <div
                   key={id}

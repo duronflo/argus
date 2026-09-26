@@ -19,13 +19,20 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   watchtower:
-    image: containrrr/watchtower
+    build:
+      context: .
+      dockerfile: docker/watchtower.Dockerfile
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - watchtower-logs:/var/log/watchtower
+    environment:
+      - WATCHTOWER_LOG_LEVEL=debug
+      - WATCHTOWER_LOG_FORMAT=Pretty
     # Poll every 5 minutes for new image digests
     command: --interval 300 --label-enable
     restart: unless-stopped
 
 volumes:
   argus-data:
+  watchtower-logs:

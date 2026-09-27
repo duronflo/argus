@@ -1,9 +1,11 @@
 // Versionshistorie – neueste Version oben. Bei jedem Release hier einen
 // Eintrag ergänzen und "version" in package.json angleichen (ein Test prüft das).
+// Solange die App noch nicht fertig ist, bleibt die Hauptversion 0: neue
+// Funktionen erhöhen die zweite Stelle (0.3.0), kleine Korrekturen die dritte.
 
 export const CHANGELOG = [
   {
-    version: '2.0.0',
+    version: '0.2.0',
     datum: '2026-09-27',
     titel: 'Vereinfachung: eine Rechnungsliste',
     punkte: [
@@ -14,11 +16,12 @@ export const CHANGELOG = [
       'Gewerk-Status vereinfacht: offen, beauftragt, in Arbeit, fertig.',
       'Sortieren per Klick auf die Spaltenüberschrift statt Auswahllisten; Gewerke nur noch als Liste.',
       'Passwort ist ein Pflichtfeld.',
+      'Handy-Ansicht überarbeitet: Tabellen als Karten mit Bearbeiten-Knöpfen, Dialoge im Vollbild, Diagramm-Summen passen immer.',
       'Versionsanzeige im Header; Docker-Image auf Node 22.',
     ],
   },
   {
-    version: '1.4.0',
+    version: '0.1.4',
     datum: '2026-09-26',
     titel: 'Rechnungen am Gewerk',
     punkte: [
@@ -28,7 +31,7 @@ export const CHANGELOG = [
     ],
   },
   {
-    version: '1.3.0',
+    version: '0.1.3',
     datum: '2026-09-07',
     titel: 'Rechnungen an Angeboten',
     punkte: [
@@ -37,7 +40,7 @@ export const CHANGELOG = [
     ],
   },
   {
-    version: '1.2.0',
+    version: '0.1.2',
     datum: '2026-09-04',
     titel: 'Einheiten-Analyse',
     punkte: [
@@ -46,7 +49,7 @@ export const CHANGELOG = [
     ],
   },
   {
-    version: '1.1.0',
+    version: '0.1.1',
     datum: '2026-09-02',
     titel: 'Budgetplanung',
     punkte: [
@@ -55,7 +58,7 @@ export const CHANGELOG = [
     ],
   },
   {
-    version: '1.0.0',
+    version: '0.1.0',
     datum: '2026-07-10',
     titel: 'Erste Version',
     punkte: [

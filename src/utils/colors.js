@@ -46,7 +46,8 @@ export function lighten(hex, amount = 0.85) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
-export function getGewerkBarColor(status, paid = 0, paidMarked = false) {
+/** Blue while planned/in progress; green when finished and paid, amber when finished but unpaid. */
+export function getGewerkBarColor(status, zahlstatus) {
   if (status !== 'fertig') return PLANNED_BAR_COLOR;
-  return paidMarked || paid > 0 ? FINISHED_BAR_COLOR : FINISHED_UNPAID_BAR_COLOR;
+  return zahlstatus === 'bezahlt' ? FINISHED_BAR_COLOR : FINISHED_UNPAID_BAR_COLOR;
 }

@@ -1,6 +1,5 @@
-import { useMemo } from 'react';
-import { calcGesamtStats, calcEinheitStats, calcProjectBudget, isGewerkBezahltMarkiert, isProjectBudgetDerived, sumGeplant } from '../utils/calculations';
 import { formatCurrency } from '../utils/dateUtils';
+import { useProject } from '../state/ProjectContext';
 import BudgetOverview from './BudgetOverview';
 import { getGewerkBarColor } from '../utils/colors';
 
@@ -14,30 +13,11 @@ function KpiCard({ label, value, sub, warn }) {
   );
 }
 
-export default function Dashboard({ projekt, gewerke, angebote, rechnungen, einheiten, onNavigate }) {
-  const stats = useMemo(() => calcGesamtStats(angebote, rechnungen), [angebote, rechnungen]);
-  const planned = useMemo(() => sumGeplant(gewerke, angebote, rechnungen), [gewerke, angebote, rechnungen]);
-  const effectiveBudget = useMemo(() => calcProjectBudget(projekt, einheiten), [projekt, einheiten]);
-  const budgetDerived = useMemo(() => isProjectBudgetDerived(einheiten), [einheiten]);
-
-  const offeneAngebote = angebote.filter((a) => a.status === 'offen').length;
-  const gewerkCount = gewerke.length;
-
-  const gewerkeByStatus = useMemo(() => {
-    const map = {};
-    gewerke.forEach((g) => {
-      map[g.status] = (map[g.status] || 0) + 1;
-    });
-    return map;
-  }, [gewerke]);
-
-  const einheitenStats = useMemo(() => {
-    if (!einheiten || einheiten.length === 0) return [];
-    return einheiten.map((eh) => ({
-      ...eh,
-      stats: calcEinheitStats(eh, gewerke, angebote, rechnungen),
-    }));
-  }, [einheiten, gewerke, angebote, rechnungen]);
+export default function Dashboard({ onNavigate }) {
+  const { data, model } = useProject();
+  const { gewerke, einheiten } = data;
+  const p = model.projekt;
+  const gewerkeByStatus = p.gewerkeNachStatus;
 
   return (
     <div className="dashboard">
@@ -46,41 +26,42 @@ export default function Dashboard({ projekt, gewerke, angebote, rechnungen, einh
       <div className="kpi-grid">
         <KpiCard
           label="Gewerke gesamt"
-          value={gewerkCount}
+          value={gewerke.length}
           sub={`${gewerkeByStatus['fertig'] || 0} fertig · ${gewerkeByStatus['in Arbeit'] || 0} in Arbeit`}
         />
         <KpiCard
           label="Offene Angebote"
-          value={offeneAngebote}
+          value={p.offeneAngebote}
           sub="Noch nicht entschieden"
         />
         <KpiCard
           label="Geplant"
-          value={formatCurrency(planned)}
-          sub={effectiveBudget > 0 ? `von ${formatCurrency(effectiveBudget)} Budget${budgetDerived ? ' (aus Einheiten)' : ''}` : undefined}
-          warn={effectiveBudget > 0 && planned > effectiveBudget}
+          value={formatCurrency(p.geplant)}
+          sub={p.budget > 0 ? `von ${formatCurrency(p.budget)} Budget${p.budgetAusEinheiten ? ' (aus Einheiten)' : ''}` : undefined}
+          warn={p.budget > 0 && p.geplant > p.budget}
         />
         <KpiCard
           label="Bezahlt"
-          value={formatCurrency(stats.sumBezahlt)}
-          sub={planned > 0 ? `Offen: ${formatCurrency(Math.max(planned - stats.sumBezahlt, 0))}` : undefined}
+          value={formatCurrency(p.bezahlt)}
+          sub={p.geplant > 0 ? `Offen: ${formatCurrency(p.offen)}` : undefined}
         />
       </div>
 
       <div className="dashboard-section budget-overview-section">
         <h3 className="subsection-title">Budgetübersicht</h3>
-        <BudgetOverview budget={effectiveBudget} planned={planned} paid={stats.sumBezahlt} />
+        <BudgetOverview budget={p.budget} planned={p.geplant} paid={p.bezahlt} />
       </div>
 
-      {einheitenStats.length > 0 && (
+      {einheiten.length > 0 && (
         <div className="dashboard-section">
           <h3 className="subsection-title">Budget pro Einheit</h3>
           <div className="dashboard-units-grid">
-            {einheitenStats.map(({ id, name, budget, stats: es }) => {
-              const over = budget > 0 && es.sumGeplant > budget;
-              const unitGewerke = gewerke.filter((g) => (g.einheitIds || []).includes(id));
+            {einheiten.map(({ id, name, budget }) => {
+              const es = model.einheit(id);
+              const over = budget > 0 && es.geplant > budget;
+              const unitGewerke = gewerke.filter((g) => model.gewerk(g.id).einheitIds.includes(id));
               const allFinished = unitGewerke.length > 0 && unitGewerke.every((g) => g.status === 'fertig');
-              const allFinishedAndPaid = allFinished && unitGewerke.every((g) => isGewerkBezahltMarkiert(g, angebote, rechnungen));
+              const allFinishedAndPaid = allFinished && unitGewerke.every((g) => model.gewerk(g.id).zahlstatus === 'bezahlt');
               return (
                 <div
                   key={id}
@@ -102,24 +83,24 @@ export default function Dashboard({ projekt, gewerke, angebote, rechnungen, einh
                   </div>
                   <div className="dashboard-unit-row">
                     <span className="dashboard-unit-label">Geplant</span>
-                    <span className={`dashboard-unit-value${over ? ' warn-text' : ''}`}>{formatCurrency(es.sumGeplant)}</span>
+                    <span className={`dashboard-unit-value${over ? ' warn-text' : ''}`}>{formatCurrency(es.geplant)}</span>
                   </div>
                   <div className="dashboard-unit-row">
                     <span className="dashboard-unit-label">Bezahlt</span>
-                    <span className="dashboard-unit-value">{formatCurrency(es.sumBezahlt)}</span>
+                    <span className="dashboard-unit-value">{formatCurrency(es.bezahlt)}</span>
                   </div>
                   {budget > 0 && (
                     <div className="budget-bar" style={{ marginTop: 6 }}>
                       <div
                         className="budget-bar-fill"
                         style={{
-                          width: `${Math.min((es.sumGeplant / budget) * 100, 100)}%`,
+                          width: `${Math.min((es.geplant / budget) * 100, 100)}%`,
                           background: over
                             ? '#dc2626'
                             : allFinishedAndPaid
-                              ? getGewerkBarColor('fertig', 1)
+                              ? getGewerkBarColor('fertig', 'bezahlt')
                               : allFinished
-                                ? getGewerkBarColor('fertig')
+                                ? getGewerkBarColor('fertig', 'offen')
                                 : getGewerkBarColor('in Arbeit'),
                         }}
                       />

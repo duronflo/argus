@@ -1,6 +1,6 @@
 import { useState } from 'react';
-
-const GEWERK_STATUSES = ['offen', 'angefragt', 'angeboten', 'beauftragt', 'in Arbeit', 'fertig'];
+import { equalSplit } from '../domain/migrate';
+import { GEWERK_STATUSES, statusLabel } from '../domain/constants';
 
 export default function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel, autoSave = false }) {
   const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
@@ -11,7 +11,6 @@ export default function GewerkForm({ initial, einheiten, kategorien, onSave, onC
       status: 'offen',
       notizen: '',
       geplantBudget: '',
-      einheitIds: [],
       einheitAnteile: {},
     }
   );
@@ -30,15 +29,11 @@ export default function GewerkForm({ initial, einheiten, kategorien, onSave, onC
     if (autoSave && saveImmediately) save(next);
   }
 
+  const einheitIds = Object.keys(form.einheitAnteile || {});
+
   function toggleEinheit(id) {
-    const ids = form.einheitIds || [];
-    const newIds = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
-    const pct = newIds.length > 0 ? Math.round(100 / newIds.length) : 0;
-    const anteile = {};
-    newIds.forEach((eid, i) => {
-      anteile[eid] = i === newIds.length - 1 ? 100 - pct * (newIds.length - 1) : pct;
-    });
-    const next = { ...form, einheitIds: newIds, einheitAnteile: anteile };
+    const newIds = einheitIds.includes(id) ? einheitIds.filter((x) => x !== id) : [...einheitIds, id];
+    const next = { ...form, einheitAnteile: equalSplit(newIds) };
     setForm(next);
     if (autoSave) save(next);
   }
@@ -66,7 +61,7 @@ export default function GewerkForm({ initial, einheiten, kategorien, onSave, onC
           <label className="form-label">Status</label>
           <select className="select" value={form.status} onChange={(e) => set('status', e.target.value, true)}>
             {GEWERK_STATUSES.map((s) => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              <option key={s} value={s}>{statusLabel(s)}</option>
             ))}
           </select>
         </div>
@@ -91,14 +86,14 @@ export default function GewerkForm({ initial, einheiten, kategorien, onSave, onC
               <label key={eh.id} className="einheit-checkbox-item">
                 <input
                   type="checkbox"
-                  checked={(form.einheitIds || []).includes(eh.id)}
+                  checked={einheitIds.includes(eh.id)}
                   onChange={() => toggleEinheit(eh.id)}
                 />
                 <span>{eh.name}</span>
               </label>
             ))}
           </div>
-          {(form.einheitIds || []).length === 0 && (
+          {einheitIds.length === 0 && (
             <span className="form-hint">Keine Zuweisung = allgemeines Gewerk (projekt-weit)</span>
           )}
         </div>

@@ -1,463 +1,77 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { sampleData, DEFAULT_KATEGORIEN } from './data/sampleData';
+import { useEffect, useState } from 'react';
+import { DEFAULT_KATEGORIEN } from './data/sampleData';
+import { SCHEMA_VERSION } from './domain/migrate';
 import { generateId } from './utils/dateUtils';
+import { useProject } from './state/ProjectContext';
 import ProjectHeader from './components/ProjectHeader';
+import ProjektForm from './components/ProjektForm';
 import ImportExportBar from './components/ImportExportBar';
 import Dashboard from './components/Dashboard';
 import AngeboteView from './components/AngeboteView';
 import GewerkeDetails from './components/GewerkeDetails';
 import EinheitenView from './components/EinheitenView';
 import RechnungenView from './components/RechnungenView';
+import TradeDetail from './components/TradeDetail';
 import Modal from './components/Modal';
 import PasswordGate, { ArgusLogoSvg } from './components/PasswordGate';
 import { isAuthenticated, authenticate } from './utils/auth';
 import './App.css';
 
-const STORAGE_KEY = 'argus_project_data';
-const SAVE_DEBOUNCE_MS = 800;
-
 const NAV_ITEMS = [
-  { id: 'dashboard', label: '📊 Dashboard' },
-  { id: 'einheiten', label: '🏠 Einheiten' },
-  { id: 'gewerke', label: '🔨 Gewerke' },
-  { id: 'angebote', label: '📋 Angebote' },
-  { id: 'rechnungen', label: '📄 Rechnungen' },
+  { id: 'dashboard', label: '📊 Dashboard', View: Dashboard },
+  { id: 'einheiten', label: '🏠 Einheiten', View: EinheitenView },
+  { id: 'gewerke', label: '🔨 Gewerke', View: GewerkeDetails },
+  { id: 'angebote', label: '📋 Angebote', View: AngeboteView },
+  { id: 'rechnungen', label: '📄 Rechnungen', View: RechnungenView },
 ];
 
-// ---------------------------------------------------------------------------
-// Server persistence helpers
-// ---------------------------------------------------------------------------
-async function fetchProjectFromServer() {
-  const res = await fetch('/api/project');
-  if (!res.ok) return null;
-  return res.json();
-}
-
-async function saveProjectToServer(data) {
-  await fetch('/api/project', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-}
-
-// localStorage is kept only as an offline fallback / cache
-function loadFromLocalStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return migrateData(parsed);
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
-// Fields removed from the data model – kept here so old, previously saved
-// projects lose these unused values on load instead of hanging around forever.
-const REMOVED_GEWERK_FIELDS = ['geplanterStart', 'geplantesEnde', 'tatsaechlicherStart', 'tatsaechlichesEnde'];
-const REMOVED_ANGEBOT_FIELDS = ['datum', 'gueltigBis'];
-
-function normalizeRechnung(rechnung) {
-  const betrag = parseFloat(rechnung?.betrag) || 0;
-  const istBezahlt = rechnung?.status === 'bezahlt' || !!rechnung?.bezahltMarkiert || (parseFloat(rechnung?.bezahlt) || 0) > 0;
-  return {
-    ...rechnung,
-    betrag,
-    bezahlt: istBezahlt ? betrag : 0,
-    status: istBezahlt ? 'bezahlt' : 'offen',
-  };
-}
-
-function migrateData(parsed) {
-  if (!parsed) return parsed;
-  if (!parsed.einheiten) parsed.einheiten = [];
-  if (!parsed.kategorien) parsed.kategorien = [...DEFAULT_KATEGORIEN];
-  if (!parsed.rechnungen) parsed.rechnungen = [];
-  delete parsed.meilensteine;
-  if (!parsed.projekt.password) parsed.projekt = { ...parsed.projekt, password: '0000' };
-  if (parsed.gewerke) {
-    parsed.gewerke = parsed.gewerke.map((g) => {
-      const g2 = g.einheitIds ? g : { ...g, einheitIds: [] };
-      const g3 = g2.geplantBudget == null ? { ...g2, geplantBudget: 0 } : g2;
-      const g4 = { ...g3 };
-      REMOVED_GEWERK_FIELDS.forEach((f) => delete g4[f]);
-      if (!g4.einheitAnteile) {
-        const ids = g4.einheitIds || [];
-        const pct = ids.length > 0 ? Math.round(100 / ids.length) : 0;
-        const anteile = {};
-        ids.forEach((id, i) => {
-          anteile[id] = i === ids.length - 1 ? 100 - pct * (ids.length - 1) : pct;
-        });
-        return { ...g4, einheitAnteile: anteile };
-      }
-      return g4;
-    });
-  }
-  if (parsed.angebote) {
-    parsed.angebote = parsed.angebote.map((a) => {
-      const a2 = { ...a };
-      REMOVED_ANGEBOT_FIELDS.forEach((f) => delete a2[f]);
-      a2.bezahltMarkiert = !!a2.bezahltMarkiert;
-      a2.rechnungen = Array.isArray(a2.rechnungen)
-        ? a2.rechnungen.map(normalizeRechnung)
-        : [];
-      return a2;
-    });
-  }
-  parsed.rechnungen = Array.isArray(parsed.rechnungen)
-    ? parsed.rechnungen.map((rechnung) => ({
-      ...normalizeRechnung(rechnung),
-      gewerkId: rechnung?.gewerkId || '',
-      anbieter: rechnung?.anbieter || '',
-      titel: rechnung?.titel || '',
-      notiz: rechnung?.notiz || '',
-    })).filter((rechnung) => rechnung.gewerkId)
-    : [];
-  return parsed;
-}
-
-function ProjektForm({ initial, einheiten = [], kategorien = [], onSave, onCancel }) {
-  const [form, setForm] = useState(initial || { name: '', adresse: '', budget: '', notizen: '', password: '0000' });
-  const [kats, setKats] = useState(kategorien);
-  const [newKat, setNewKat] = useState('');
-  function set(f, v) { setForm((p) => ({ ...p, [f]: v })); }
-  const hasDerivedBudget = einheiten.some((e) => (e.budget || 0) > 0);
-
-  function addKat() {
-    const trimmed = newKat.trim();
-    if (trimmed && !kats.includes(trimmed)) {
-      setKats((k) => [...k, trimmed]);
-    }
-    setNewKat('');
-  }
-
-  function removeKat(k) {
-    setKats((prev) => prev.filter((x) => x !== k));
-  }
-
-  return (
-    <form className="form" onSubmit={(e) => { e.preventDefault(); onSave({ ...form, budget: parseFloat(form.budget) || 0 }, kats); }}>
-      <div className="form-row">
-        <label className="form-label">Projektname *</label>
-        <input className="input" required value={form.name} onChange={(e) => set('name', e.target.value)} />
-      </div>
-      <div className="form-row">
-        <label className="form-label">Adresse</label>
-        <input className="input" value={form.adresse} onChange={(e) => set('adresse', e.target.value)} />
-      </div>
-      <div className="form-row">
-        <label className="form-label">
-          Budget (€)
-          {hasDerivedBudget && (
-            <span className="budget-derived-hint" title="Das Gesamtbudget wird aus den Einheiten-Budgets abgeleitet. Dieses Feld dient als Fallback.">
-              {' '}– wird aus Einheiten abgeleitet
-            </span>
-          )}
-        </label>
-        <input
-          className="input"
-          type="number"
-          step="100"
-          min="0"
-          value={form.budget}
-          onChange={(e) => set('budget', e.target.value)}
-          placeholder={hasDerivedBudget ? 'Fallback (optional)' : ''}
-        />
-      </div>
-      <div className="form-row">
-        <label className="form-label">Notizen</label>
-        <textarea className="input textarea" rows={3} value={form.notizen} onChange={(e) => set('notizen', e.target.value)} />
-      </div>
-      <div className="form-row">
-        <label className="form-label">Passwort</label>
-        <input className="input" type="text" value={form.password || ''} onChange={(e) => set('password', e.target.value)} placeholder="Passwort (leer = kein Schutz)" />
-        <span className="form-hint">Ändert das Passwort für den Zugriffsschutz. Aktuelles Cookie bleibt bis zum nächsten Login gültig.</span>
-      </div>
-      <div className="form-row">
-        <label className="form-label">Kategorien (Gewerke)</label>
-        <div className="kat-list">
-          {kats.map((k) => (
-            <span key={k} className="kat-tag">
-              {k}
-              <button type="button" className="kat-tag-remove" onClick={() => removeKat(k)} title="Entfernen">×</button>
-            </span>
-          ))}
-        </div>
-        <div className="kat-add-row">
-          <input
-            className="input"
-            value={newKat}
-            onChange={(e) => setNewKat(e.target.value)}
-            placeholder="Neue Kategorie…"
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKat(); } }}
-          />
-          <button type="button" className="btn btn-secondary btn-sm" onClick={addKat}>+ Hinzufügen</button>
-        </div>
-      </div>
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel}>Abbrechen</button>
-        <button type="submit" className="btn btn-primary">Speichern</button>
-      </div>
-    </form>
-  );
-}
-
 export default function App() {
+  const { data, loading, openGewerkId, actions } = useProject();
+  const { projekt, einheiten, kategorien } = data;
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [selectedGewerkId, setSelectedGewerkId] = useState(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [unlocked, setUnlocked] = useState(false);
-
-  // Start with localStorage cache for instant render; server data overwrites it
-  const [data, setData] = useState(() => loadFromLocalStorage() || sampleData);
-
-  const {
-    projekt,
-    gewerke,
-    angebote,
-    einheiten,
-    kategorien,
-    rechnungen = [],
-  } = data;
 
   // Check cookie auth after data is loaded
   useEffect(() => {
     if (!loading) {
-      const pw = data.projekt?.password || '0000';
+      const pw = projekt?.password || '0000';
       setUnlocked(!pw || isAuthenticated(pw));
     }
-  }, [loading, data.projekt?.password]);
-
-  // On mount: fetch from server, fall back to localStorage/sampleData
-  useEffect(() => {
-    fetchProjectFromServer()
-      .then((serverData) => {
-        if (serverData) {
-          setData(migrateData(serverData));
-        }
-      })
-      .catch(() => {/* server unreachable – keep local data */})
-      .finally(() => setLoading(false));
-  }, []);
-
-  // Debounced server save + localStorage mirror
-  const saveTimer = useRef(null);
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (loading) return; // don't save during initial load
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      // ignore quota errors
-    }
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      saveProjectToServer(data).catch(() => {/* ignore save errors silently */});
-    }, SAVE_DEBOUNCE_MS);
-    return () => clearTimeout(saveTimer.current);
-  }, [data, loading]);
-
-  function updateData(partial) {
-    setData((prev) => ({ ...prev, ...partial }));
-  }
-
-  // Navigation helper called from Dashboard
-  const handleNavigate = useCallback((tab, gewerkId) => {
-    setActiveTab(tab);
-    if (gewerkId) setSelectedGewerkId(gewerkId);
-  }, []);
-
-  // --- Gewerke CRUD ---
-  function addGewerk(gewerk) {
-    updateData({ gewerke: [...gewerke, gewerk] });
-    setSelectedGewerkId(gewerk.id);
-  }
-  function editGewerk(updated) {
-    updateData({ gewerke: gewerke.map((g) => g.id === updated.id ? updated : g) });
-  }
-  function deleteGewerk(id) {
-    updateData({
-      gewerke: gewerke.filter((g) => g.id !== id),
-      angebote: angebote.filter((a) => a.gewerkId !== id),
-      rechnungen: rechnungen.filter((r) => r.gewerkId !== id),
-    });
-    if (selectedGewerkId === id) setSelectedGewerkId(null);
-  }
-  function reorderGewerke(idsInOrder) {
-    const byId = new Map(gewerke.map((g) => [g.id, g]));
-    const reordered = idsInOrder.map((id) => byId.get(id)).filter(Boolean);
-    const missing = gewerke.filter((g) => !idsInOrder.includes(g.id));
-    updateData({ gewerke: [...reordered, ...missing] });
-  }
-
-  // --- Angebote CRUD ---
-  function addAngebot(angebot) {
-    updateData({ angebote: [...angebote, angebot] });
-  }
-  function editAngebot(updated) {
-    updateData({ angebote: angebote.map((a) => a.id === updated.id ? updated : a) });
-  }
-  function deleteAngebot(id) {
-    updateData({ angebote: angebote.filter((a) => a.id !== id) });
-  }
-
-  // --- Direkte Rechnungen CRUD ---
-  function addRechnung(rechnung) {
-    updateData({ rechnungen: [...rechnungen, rechnung] });
-  }
-  function editRechnung(updated) {
-    updateData({ rechnungen: rechnungen.map((r) => r.id === updated.id ? updated : r) });
-  }
-  function deleteRechnung(id) {
-    updateData({ rechnungen: rechnungen.filter((r) => r.id !== id) });
-  }
-
-  // --- Einheiten CRUD ---
-  function addEinheit(einheit) {
-    updateData({ einheiten: [...einheiten, einheit] });
-  }
-  function editEinheit(updated) {
-    updateData({ einheiten: einheiten.map((e) => e.id === updated.id ? updated : e) });
-  }
-  function deleteEinheit(id) {
-    updateData({
-      einheiten: einheiten.filter((e) => e.id !== id),
-      gewerke: gewerke.map((g) => ({
-        ...g,
-        einheitIds: (g.einheitIds || []).filter((eid) => eid !== id),
-      })),
-    });
-  }
+  }, [loading, projekt?.password]);
 
   function handleImport(imported) {
     if (!imported.projekt || !imported.gewerke || !imported.angebote) {
       alert('Ungültiges Format: Felder "projekt", "gewerke" und "angebote" werden erwartet.');
       return;
     }
-    setData(migrateData({
-      projekt: imported.projekt,
-      gewerke: imported.gewerke,
-      angebote: imported.angebote,
-      einheiten: imported.einheiten || [],
-      kategorien: imported.kategorien || [...DEFAULT_KATEGORIEN],
-      rechnungen: imported.rechnungen || [],
-    }));
-    setSelectedGewerkId(null);
+    actions.replaceAll(imported);
     setActiveTab('dashboard');
   }
 
   function handleNewProject() {
     if (window.confirm('Neues Projekt anlegen? Alle nicht gespeicherten Daten gehen verloren (Export vorher empfohlen).')) {
-      setData({
+      actions.replaceAll({
+        schemaVersion: SCHEMA_VERSION,
         projekt: { id: generateId('proj'), name: 'Neues Projekt', adresse: '', budget: 0, notizen: '', password: '0000' },
+        kategorien: [...DEFAULT_KATEGORIEN],
+        einheiten: [],
         gewerke: [],
         angebote: [],
-        einheiten: [],
-        kategorien: [...DEFAULT_KATEGORIEN],
         rechnungen: [],
       });
-      setSelectedGewerkId(null);
       setActiveTab('dashboard');
     }
   }
 
-  function renderContent() {
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <Dashboard
-            projekt={projekt}
-            gewerke={gewerke}
-            angebote={angebote}
-            rechnungen={rechnungen}
-            einheiten={einheiten}
-            onNavigate={handleNavigate}
-          />
-        );
-      case 'angebote':
-        return (
-          <AngeboteView
-            gewerke={gewerke}
-            angebote={angebote}
-            rechnungen={rechnungen}
-            einheiten={einheiten}
-            onNavigate={handleNavigate}
-            onReorderGewerke={reorderGewerke}
-          />
-        );
-      case 'gewerke':
-        return (
-          <GewerkeDetails
-            gewerke={gewerke}
-            angebote={angebote}
-            rechnungen={rechnungen}
-            einheiten={einheiten}
-            kategorien={kategorien || []}
-            selectedGewerkId={selectedGewerkId}
-            onSelectGewerk={setSelectedGewerkId}
-            onAddGewerk={addGewerk}
-            onEditGewerk={editGewerk}
-            onDeleteGewerk={deleteGewerk}
-            onReorderGewerke={reorderGewerke}
-            onAddAngebot={addAngebot}
-            onEditAngebot={editAngebot}
-            onDeleteAngebot={deleteAngebot}
-            onAddRechnung={addRechnung}
-            onEditRechnung={editRechnung}
-            onDeleteRechnung={deleteRechnung}
-          />
-        );
-      case 'einheiten':
-        return (
-          <EinheitenView
-            einheiten={einheiten}
-            gewerke={gewerke}
-            angebote={angebote}
-            rechnungen={rechnungen}
-            kategorien={kategorien || []}
-            onAddEinheit={addEinheit}
-            onEditEinheit={editEinheit}
-            onDeleteEinheit={deleteEinheit}
-            onEditGewerk={editGewerk}
-            onAddAngebot={addAngebot}
-            onEditAngebot={editAngebot}
-            onDeleteAngebot={deleteAngebot}
-            onAddRechnung={addRechnung}
-            onEditRechnung={editRechnung}
-            onDeleteRechnung={deleteRechnung}
-          />
-        );
-      case 'rechnungen':
-        return (
-          <RechnungenView
-            gewerke={gewerke}
-            rechnungen={rechnungen}
-            onNavigate={handleNavigate}
-            onAddRechnung={addRechnung}
-            onEditRechnung={editRechnung}
-            onDeleteRechnung={deleteRechnung}
-          />
-        );
-      default:
-        return null;
-    }
+  const currentPw = projekt?.password || '0000';
+  if (!loading && !unlocked) {
+    return <PasswordGate value={currentPw} onUnlock={() => setUnlocked(true)} />;
   }
 
-  const currentPw = (projekt && projekt.password) || '0000';
-  if (!loading && !unlocked) {
-    return (
-      <PasswordGate
-        value={currentPw}
-        onUnlock={() => setUnlocked(true)}
-      />
-    );
-  }
+  const ActiveView = NAV_ITEMS.find((item) => item.id === activeTab)?.View;
+  const openGewerk = data.gewerke.find((g) => g.id === openGewerkId);
 
   return (
     <div className="app-layout">
@@ -481,7 +95,7 @@ export default function App() {
         </nav>
         <div className="sidebar-footer">
           <button className="btn btn-ghost btn-sm sidebar-new" onClick={handleNewProject}>+ Neues Projekt</button>
-          <ImportExportBar projectData={data} onImport={handleImport} />
+          <ImportExportBar onImport={handleImport} />
         </div>
       </aside>
 
@@ -494,21 +108,26 @@ export default function App() {
           <button className="hamburger" onClick={() => setMobileNavOpen(true)} aria-label="Menü öffnen">
             ☰
           </button>
-          <ProjectHeader
-            projekt={projekt}
-            onEdit={() => setShowProjectForm(true)}
-          />
+          <ProjectHeader projekt={projekt} onEdit={() => setShowProjectForm(true)} />
         </header>
         <main className="content">
-          {loading && (
+          {loading ? (
             <div className="loading-overlay">
               <span className="loading-spinner" />
               <span>Daten werden geladen…</span>
             </div>
+          ) : (
+            ActiveView && <ActiveView onNavigate={setActiveTab} />
           )}
-          {!loading && renderContent()}
         </main>
       </div>
+
+      {/* One trade dialog for the whole app – opened from every tab */}
+      {openGewerk && (
+        <Modal title={openGewerk.name} onClose={() => actions.openGewerk(null)} width={820}>
+          <TradeDetail gewerkId={openGewerk.id} />
+        </Modal>
+      )}
 
       {showProjectForm && (
         <Modal title="Projekt bearbeiten" onClose={() => setShowProjectForm(false)}>
@@ -517,7 +136,7 @@ export default function App() {
             einheiten={einheiten}
             kategorien={kategorien || []}
             onSave={(updated, updatedKats) => {
-              updateData({ projekt: { ...projekt, ...updated }, kategorien: updatedKats });
+              actions.updateProjekt(updated, updatedKats);
               // Update auth cookie if password changed
               if (updated.password) authenticate(updated.password);
               setShowProjectForm(false);

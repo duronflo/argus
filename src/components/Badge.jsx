@@ -1,8 +1,6 @@
 const STATUS_CONFIG = {
   // Gewerk status
   offen: { label: 'Offen', color: '#6b7280', bg: '#f3f4f6' },
-  angefragt: { label: 'Angefragt', color: '#2563eb', bg: '#dbeafe' },
-  angeboten: { label: 'Angeboten', color: '#d97706', bg: '#fef3c7' },
   beauftragt: { label: 'Beauftragt', color: '#7c3aed', bg: '#ede9fe' },
   'in Arbeit': { label: 'In Arbeit', color: '#0891b2', bg: '#cffafe' },
   fertig: { label: 'Fertig', color: '#16a34a', bg: '#dcfce7' },
@@ -11,13 +9,12 @@ const STATUS_CONFIG = {
   abgelehnt: { label: 'Abgelehnt', color: '#dc2626', bg: '#fee2e2' },
   // Rechnung status
   bezahlt: { label: 'Bezahlt', color: '#16a34a', bg: '#dcfce7' },
-  // Meilenstein status
-  erledigt: { label: 'Erledigt', color: '#16a34a', bg: '#dcfce7' },
 };
 
-export function GewerkPaymentBadge({ status, paid = 0, paidMarked = false, small }) {
-  if (status !== 'fertig') return null;
-  const isPaid = paidMarked || paid > 0;
+/** Payment state of a finished trade (zahlstatus from the model); nothing otherwise. */
+export function GewerkPaymentBadge({ zahlstatus, small }) {
+  if (!zahlstatus) return null;
+  const isPaid = zahlstatus === 'bezahlt';
   const color = isPaid ? '#16a34a' : '#d97706';
   return (
     <span

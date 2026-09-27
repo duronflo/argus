@@ -1,8 +1,9 @@
 import { useRef } from 'react';
 import { exportJSON, importJSON } from '../utils/importExport';
-import { exportExcel } from '../utils/exportExcel';
+import { useProject } from '../state/ProjectContext';
 
-export default function ImportExportBar({ projectData, onImport }) {
+export default function ImportExportBar({ onImport }) {
+  const { data: projectData, model } = useProject();
   const fileRef = useRef(null);
 
   function handleExport() {
@@ -11,7 +12,9 @@ export default function ImportExportBar({ projectData, onImport }) {
 
   async function handleExcelExport() {
     try {
-      await exportExcel(projectData, `argus-export-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      // exceljs is large – load it only when an export is requested.
+      const { exportExcel } = await import('../utils/exportExcel');
+      await exportExcel(projectData, model, `argus-export-${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch (err) {
       alert('Excel-Export fehlgeschlagen: ' + err.message);
     }

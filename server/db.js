@@ -24,16 +24,33 @@ db.exec(`
   )
 `);
 
+// Copies of the project taken right before a data-model upgrade overwrites it
+// (restore manually via SQLite if a migration ever goes wrong).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS project_backups (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    schema      INTEGER NOT NULL,
+    data        TEXT    NOT NULL
+  )
+`);
+
+const schemaOf = (project) => project?.schemaVersion || 1;
+
 export function getProject() {
   const row = db.prepare('SELECT data FROM projects WHERE id = 1').get();
   if (!row) return null;
   return JSON.parse(row.data);
 }
 
-export function saveProject(data) {
-  const json = JSON.stringify(data);
+export const saveProject = db.transaction((data) => {
+  const row = db.prepare('SELECT data FROM projects WHERE id = 1').get();
+  const current = row ? JSON.parse(row.data) : null;
+  if (current && schemaOf(data) > schemaOf(current)) {
+    db.prepare('INSERT INTO project_backups (schema, data) VALUES (?, ?)').run(schemaOf(current), row.data);
+  }
   db.prepare(`
     INSERT INTO projects (id, data) VALUES (1, ?)
     ON CONFLICT(id) DO UPDATE SET data = excluded.data
-  `).run(json);
-}
+  `).run(JSON.stringify(data));
+});

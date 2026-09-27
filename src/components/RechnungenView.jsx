@@ -161,7 +161,7 @@ export function RechnungenTable({ rechnungen, fixedGewerkId }) {
         <p className="empty-state">Noch keine Rechnungen erfasst.</p>
       ) : (
         <div className="table-wrap">
-          <table className="table">
+          <table className="table table--stack">
             <thead>
               <tr>
                 {!fixedGewerkId && <SortTh label="Gewerk" column="gewerk" sorting={sorting} />}
@@ -181,21 +181,21 @@ export function RechnungenTable({ rechnungen, fixedGewerkId }) {
                 return (
                   <tr key={r.id}>
                     {!fixedGewerkId && (
-                      <td>
+                      <td data-label="Gewerk">
                         {gewerk ? (
-                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => actions.openGewerk(gewerk.id)}>
+                          <button type="button" className="link-button" onClick={() => actions.openGewerk(gewerk.id)}>
                             {gewerk.name}
                           </button>
                         ) : '—'}
                       </td>
                     )}
-                    <td><strong>{r.anbieter}</strong>{r.notiz && <div className="note-cell">{r.notiz}</div>}</td>
-                    <td>{r.titel || '—'}</td>
-                    <td>{angebot ? angebot.anbieter : '—'}</td>
-                    {showEinheit && <td>{r.einheitId ? einheitName(einheiten, r.einheitId) : <span className="muted">verteilt</span>}</td>}
-                    <td className="text-right">{formatCurrency(r.betrag || 0)}</td>
-                    <td><Badge status={r.bezahlt ? 'bezahlt' : 'offen'} small /></td>
-                    <td>
+                    <td className="cell-title"><strong>{r.anbieter}</strong>{r.notiz && <div className="note-cell">{r.notiz}</div>}</td>
+                    <td data-label="Titel">{r.titel || '—'}</td>
+                    <td data-label="Angebot">{angebot ? angebot.anbieter : '—'}</td>
+                    {showEinheit && <td data-label="Einheit">{r.einheitId ? einheitName(einheiten, r.einheitId) : <span className="muted">verteilt</span>}</td>}
+                    <td data-label="Betrag" className="text-right cell-amount">{formatCurrency(r.betrag || 0)}</td>
+                    <td data-label="Status"><Badge status={r.bezahlt ? 'bezahlt' : 'offen'} small /></td>
+                    <td className="cell-actions">
                       <div className="row-actions">
                         <button className="btn-icon" title="Bearbeiten" onClick={() => setEditing(r)}>✏</button>
                         <button className="btn-icon btn-icon--danger" title="Löschen" onClick={() => setDeleteConfirm(r.id)}>🗑</button>
@@ -208,9 +208,9 @@ export function RechnungenTable({ rechnungen, fixedGewerkId }) {
             <tfoot>
               <tr className="table-foot">
                 <td colSpan={fixedGewerkId ? 3 : 4}><strong>Summe</strong> · davon bezahlt {formatCurrency(sumBezahlt)}</td>
-                {showEinheit && <td></td>}
+                {showEinheit && <td className="cell-empty"></td>}
                 <td className="text-right"><strong>{formatCurrency(sumBetrag)}</strong></td>
-                <td colSpan={2}></td>
+                <td colSpan={2} className="cell-empty"></td>
               </tr>
             </tfoot>
           </table>

@@ -148,7 +148,7 @@ export default function AngeboteView() {
                 {gewerk && <span className="angebote-group-nav">→ Details</span>}
               </div>
               <div className="table-wrap">
-                <table className="table">
+                <table className="table table--stack">
                   <thead>
                     <tr>
                       <SortTh label="Anbieter" column="anbieter" sorting={sorting} />
@@ -164,14 +164,14 @@ export default function AngeboteView() {
                       const aStats = model.angebot(a.id);
                       return (
                       <tr key={a.id} className={a.status === 'ausgewählt' ? 'row--selected' : a.status === 'abgelehnt' ? 'row--rejected' : ''}>
-                        <td><strong>{a.anbieter}</strong></td>
-                        <td>{a.titel || '—'}</td>
-                        <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
-                        <td className="text-right">
+                        <td className="cell-title"><strong>{a.anbieter}</strong></td>
+                        <td data-label="Titel">{a.titel || '—'}</td>
+                        <td data-label="Angebot" className="text-right cell-amount">{formatCurrency(a.betragAngebot)}</td>
+                        <td data-label="Rechnungen" className="text-right">
                           {aStats.anzahlRechnungen > 0 ? `${aStats.anzahlRechnungen} · ${formatCurrency(aStats.summeRechnungen)}` : '—'}
                         </td>
-                        <td><Badge status={a.status} small /></td>
-                        <td className="note-cell">{a.notiz || '—'}</td>
+                        <td data-label="Status"><Badge status={a.status} small /></td>
+                        <td data-label="Notiz" className="note-cell cell-wide">{a.notiz || '—'}</td>
                       </tr>
                       );
                     })}

@@ -91,7 +91,7 @@ export default function TradeList({ onAdd, onDelete }) {
         <p className="empty-state">Keine Gewerke gefunden.</p>
       ) : (
         <div className="table-wrap gewerke-list-wrap">
-          <table className="table gewerke-list-table">
+          <table className="table table--stack gewerke-list-table">
             <thead>
               <tr>
                 <SortTh label="Gewerk" column="name" sorting={sorting} />
@@ -119,7 +119,7 @@ export default function TradeList({ onAdd, onDelete }) {
                     onDrop={(e) => { if (isCustomOrder) { e.preventDefault(); handleDrop(g.id); } }}
                     onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
                   >
-                    <td>
+                    <td className="cell-title">
                       <div className="gewerke-list-name">
                         {isCustomOrder && <span className="drag-handle" title="Ziehen zum Sortieren">⠿</span>}
                         <strong>{g.name}</strong>
@@ -128,23 +128,23 @@ export default function TradeList({ onAdd, onDelete }) {
                         <CategoryTag kategorie={g.kategorie} small />
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <div className="gewerke-list-tags">
                         <Badge status={g.status} small />
                         <GewerkPaymentBadge zahlstatus={stats.zahlstatus} small />
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Einheiten" className="cell-wide">
                       <div className="gewerke-list-units">
                         {assignedUnits.length > 0
                           ? assignedUnits.map((eh) => <span key={eh.id} className="einheit-tag einheit-tag--sm">{eh.name}</span>)
                           : <span className="gewerke-list-muted">Keine</span>}
                       </div>
                     </td>
-                    <td className="text-right">{stats.geplant > 0 ? formatCurrency(stats.geplant) : '—'}</td>
-                    <td className="text-right">{stats.bezahlt > 0 ? formatCurrency(stats.bezahlt) : '—'}</td>
-                    <td className="text-right">{stats.anzahlAngebote}</td>
-                    <td>
+                    <td data-label="Geplant" className="text-right cell-amount">{stats.geplant > 0 ? formatCurrency(stats.geplant) : '—'}</td>
+                    <td data-label="Bezahlt" className="text-right cell-amount">{stats.bezahlt > 0 ? formatCurrency(stats.bezahlt) : '—'}</td>
+                    <td data-label="Angebote" className="text-right">{stats.anzahlAngebote}</td>
+                    <td className="cell-actions">
                       <button className="btn-icon btn-icon--danger" title="Löschen" onClick={(e) => { e.stopPropagation(); onDelete(g.id); }}>
                         🗑
                       </button>

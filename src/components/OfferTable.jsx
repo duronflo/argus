@@ -75,7 +75,7 @@ export default function OfferTable({ gewerkId }) {
         <p className="empty-state">Noch keine Angebote. Klicke auf &ldquo;+ Angebot&rdquo;.</p>
       ) : (
         <div className="table-wrap">
-          <table className="table">
+          <table className="table table--stack">
             <thead>
               <tr>
                 <SortTh label="Anbieter" column="anbieter" sorting={sorting} />
@@ -91,14 +91,14 @@ export default function OfferTable({ gewerkId }) {
                 const stats = model.angebot(a.id);
                 return (
                   <tr key={a.id} className={a.status === 'ausgewählt' ? 'row--selected' : a.status === 'abgelehnt' ? 'row--rejected' : ''}>
-                    <td><strong>{a.anbieter}</strong>{a.notiz && <div className="note-cell">{a.notiz}</div>}</td>
-                    <td>{a.titel || '—'}</td>
-                    <td className="text-right">{formatCurrency(a.betragAngebot)}</td>
-                    <td className="text-right">
+                    <td className="cell-title"><strong>{a.anbieter}</strong>{a.notiz && <div className="note-cell">{a.notiz}</div>}</td>
+                    <td data-label="Titel">{a.titel || '—'}</td>
+                    <td data-label="Angebot" className="text-right cell-amount">{formatCurrency(a.betragAngebot)}</td>
+                    <td data-label="Rechnungen" className="text-right">
                       {stats.anzahlRechnungen > 0 ? `${stats.anzahlRechnungen} · ${formatCurrency(stats.summeRechnungen)}` : '—'}
                     </td>
-                    <td><Badge status={a.status} small /></td>
-                    <td>
+                    <td data-label="Status"><Badge status={a.status} small /></td>
+                    <td className="cell-actions">
                       <div className="row-actions">
                         <button className="btn-icon" title="Bearbeiten" onClick={() => setEditing(a)}>✏</button>
                         <button className="btn-icon btn-icon--danger" title="Löschen" onClick={() => setDeleteConfirm(a.id)}>🗑</button>

@@ -104,13 +104,11 @@ export default function TradeDetail({ gewerkId }) {
 
   return (
     <div className="trade-detail">
+      {/* The dialog title already shows the name – only tags and status here */}
       <div className="trade-detail-header">
-        <div>
-          <h2 className="trade-detail-title">{gewerk.name}</h2>
-          <div className="trade-detail-tags">
-            <CategoryTag kategorie={gewerk.kategorie} />
-            {assignedEinheiten.map((eh) => <span key={eh.id} className="einheit-tag">{eh.name}</span>)}
-          </div>
+        <div className="trade-detail-tags">
+          <CategoryTag kategorie={gewerk.kategorie} />
+          {assignedEinheiten.map((eh) => <span key={eh.id} className="einheit-tag">{eh.name}</span>)}
         </div>
         <div className="trade-detail-actions">
           <Badge status={gewerk.status} />

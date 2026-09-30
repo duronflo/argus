@@ -99,8 +99,19 @@ export default function TradeDetail({ gewerkId }) {
   const kats = data.kategorien?.length > 0 ? data.kategorien : ['Sonstiges'];
   const rechnungen = data.rechnungen.filter((r) => r.gewerkId === gewerk.id);
   const pct = stats.geplant > 0 ? Math.min((stats.bezahlt / stats.geplant) * 100, 100) : 0;
-  const over = stats.budget > 0 && stats.bezahlt > stats.budget;
+  const over = stats.geplant > 0 && stats.bezahlt > stats.geplant;
   const saveGewerk = (updated) => actions.save('gewerke', updated);
+
+  // Explain where "Geplant" comes from when it is not the entered budget.
+  const planAngebote = data.angebote.filter((a) => stats.planAngebotIds.includes(a.id));
+  const angebotText = planAngebote
+    .map((a) => `${a.anbieter}${a.status === 'ausgewählt' ? ' (ausgewählt)' : ''}`)
+    .join(' + ');
+  const planHinweis = {
+    rechnungen: 'Gewerk ist fertig – es zählen die Rechnungen.',
+    angebot: `Laut Angebot ${angebotText} – ersetzt das geplante Budget.`,
+    budget: null,
+  }[stats.quelle];
 
   return (
     <div className="trade-detail">
@@ -119,12 +130,12 @@ export default function TradeDetail({ gewerkId }) {
       <div className="trade-detail-meta">
         <div className="einheit-card-stats">
           <div className="einheit-stat">
-            <span className="einheit-stat-label">{stats.abgerechnet ? 'Geplant (= Rechnungen)' : 'Geplant'}</span>
+            <span className="einheit-stat-label">Geplant</span>
             <span className="einheit-stat-value">{stats.geplant > 0 ? formatCurrency(stats.geplant) : '—'}</span>
           </div>
-          {stats.abgerechnet && (
+          {stats.quelle !== 'budget' && (
             <div className="einheit-stat trade-detail-original-budget">
-              <span className="einheit-stat-label">Ursprüngliches Budget</span>
+              <span className="einheit-stat-label">Eingetragenes Budget</span>
               <span className="einheit-stat-value">{formatCurrency(stats.budget)}</span>
             </div>
           )}
@@ -142,6 +153,7 @@ export default function TradeDetail({ gewerkId }) {
             <div className="budget-bar-fill" style={{ width: `${pct}%`, background: getGewerkBarColor(gewerk.status, stats.zahlstatus) }} />
           </div>
         )}
+        {planHinweis && <p className="form-hint plan-hinweis">{planHinweis}</p>}
       </div>
 
       <section className="trade-detail-editor">
@@ -157,6 +169,9 @@ export default function TradeDetail({ gewerkId }) {
           einheiten={einheiten}
           kategorien={kats}
           autoSave
+          budgetHinweis={stats.quelle === 'angebot'
+            ? `Wird durch das Angebot (${formatCurrency(stats.geplant)}) ersetzt und gilt nur, solange es kein Angebot gibt.`
+            : null}
           onSave={(formData) => saveGewerk({
             ...gewerk,
             ...formData,

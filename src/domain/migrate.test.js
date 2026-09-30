@@ -7,8 +7,10 @@ import { sampleDataV1 } from './__fixtures__/sampleDataV1';
 const projekt = { id: 'p', name: 'Test', password: '1234' };
 
 describe('migrate', () => {
-  it('keeps the numbers of the old sample data exactly as before', () => {
+  it('keeps the numbers of the old sample data (except where an offer now replaces the budget)', () => {
     // Expected values computed with the previous calculations.js on sampleDataV1.
+    // Only difference since 0.2.1: "Malerarbeiten EG" has two open offers
+    // (4.800 / 5.200 €) – the higher one now replaces the 4.800 € budget.
     const model = buildModel(migrate(sampleDataV1));
     const byName = (name) => sampleDataV1.gewerke.find((g) => g.name === name).id;
 
@@ -16,10 +18,11 @@ describe('migrate', () => {
     expect(model.gewerk(byName('Sanitär / Bad EG'))).toMatchObject({ geplant: 12300, bezahlt: 6000 });
     expect(model.gewerk(byName('Dachsanierung'))).toMatchObject({ geplant: 22000, bezahlt: 22000, zahlstatus: 'bezahlt' });
     expect(model.gewerk(byName('Heizung / Wärmepumpe'))).toMatchObject({ geplant: 18500, bezahlt: 0 });
-    expect(model.einheit('eh-1')).toMatchObject({ geplant: 27850, bezahlt: 8125 });
+    expect(model.gewerk(byName('Malerarbeiten EG'))).toMatchObject({ geplant: 5200, budget: 4800, quelle: 'angebot' });
+    expect(model.einheit('eh-1')).toMatchObject({ geplant: 28250, bezahlt: 8125 });
     expect(model.einheit('eh-2')).toMatchObject({ geplant: 4250, bezahlt: 2125 });
     expect(model.einheit('eh-3')).toMatchObject({ geplant: 18500, bezahlt: 0 });
-    expect(model.projekt).toMatchObject({ geplant: 72600, bezahlt: 32250, budget: 120000 });
+    expect(model.projekt).toMatchObject({ geplant: 73000, bezahlt: 32250, budget: 120000 });
   });
 
   it('is idempotent', () => {

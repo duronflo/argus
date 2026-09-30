@@ -62,7 +62,7 @@ export async function exportExcel(data, model, filename) {
   // ── Sheet 3: Gewerke ──────────────────────────────────────────────────────
   const sheetGewerke = workbook.addWorksheet('Gewerke');
   headerRow(sheetGewerke, [
-    'Name', 'Kategorie', 'Status', 'Budget (€)', 'Geplant (€)', 'Bezahlt (€)', 'Offen (€)',
+    'Name', 'Kategorie', 'Status', 'Budget (€)', 'Geplant (€)', 'Geplant laut', 'Bezahlt (€)', 'Offen (€)',
     'Verteilung auf Einheiten', 'Notizen',
   ]);
   gewerke.forEach((g) => {
@@ -76,6 +76,7 @@ export async function exportExcel(data, model, filename) {
       g.status || '',
       currency(stats.budget),
       currency(stats.geplant),
+      { budget: 'Budget', angebot: 'Angebot', rechnungen: 'Rechnungen' }[stats.quelle],
       currency(stats.bezahlt),
       currency(stats.offen),
       verteilung,

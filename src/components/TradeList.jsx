@@ -8,6 +8,9 @@ import { sortBy, useSort } from '../utils/sort';
 import { GEWERK_STATUSES, statusLabel } from '../domain/constants';
 import { useProject } from '../state/ProjectContext';
 
+// Shown under "Geplant" when the amount is not the entered budget.
+const PLAN_QUELLE = { angebot: 'laut Angebot', rechnungen: 'laut Rechnungen' };
+
 export default function TradeList({ onAdd, onDelete }) {
   const { data, model, openGewerkId: selectedId, actions } = useProject();
   const { gewerke, einheiten } = data;
@@ -141,7 +144,10 @@ export default function TradeList({ onAdd, onDelete }) {
                           : <span className="gewerke-list-muted">Keine</span>}
                       </div>
                     </td>
-                    <td data-label="Geplant" className="text-right cell-amount">{stats.geplant > 0 ? formatCurrency(stats.geplant) : '—'}</td>
+                    <td data-label="Geplant" className="text-right cell-amount">
+                      {stats.geplant > 0 ? formatCurrency(stats.geplant) : '—'}
+                      {stats.quelle !== 'budget' && <div className="cell-sub">{PLAN_QUELLE[stats.quelle]}</div>}
+                    </td>
                     <td data-label="Bezahlt" className="text-right cell-amount">{stats.bezahlt > 0 ? formatCurrency(stats.bezahlt) : '—'}</td>
                     <td data-label="Angebote" className="text-right">{stats.anzahlAngebote}</td>
                     <td className="cell-actions">

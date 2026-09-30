@@ -3,8 +3,12 @@
 //
 // Regeln:
 // - Bezahlt   = Summe der bezahlten Rechnungen.
-// - Geplant   = Budget des Gewerks. Bei fertigen Gewerken mit Rechnungen
-//               zählt stattdessen die Rechnungssumme (bezahlt + offen).
+// - Geplant   = was das Gewerk voraussichtlich kostet, in dieser Rangfolge:
+//               1. fertiges Gewerk mit Rechnungen → Rechnungssumme (bezahlt + offen)
+//               2. Angebot vorhanden → Angebotsbetrag: ausgewählte Angebote
+//                  (Summe) vor offenen (das höchste, vorsichtig geplant);
+//                  abgelehnte zählen nie
+//               3. sonst das geplante Budget des Gewerks
 // - Offen     = Geplant − Bezahlt (nie negativ).
 // - Einheiten = Budget nach Verteilungsschlüssel des Gewerks. Eine Rechnung
 //               mit Einheit zählt zu 100 % dieser Einheit, eine ohne Einheit
@@ -43,11 +47,23 @@ function groupBy(items, key) {
 }
 
 const sum = (items, fn) => items.reduce((s, item) => s + (fn(item) || 0), 0);
+
+/** The offer amount that replaces the planned budget, or null without a usable offer. */
+export function getPlanAngebot(angebote) {
+  const gueltig = angebote.filter((a) => a.status !== 'abgelehnt' && (a.betragAngebot || 0) > 0);
+  const ausgewaehlt = gueltig.filter((a) => a.status === 'ausgewählt');
+  if (ausgewaehlt.length > 0) {
+    return { betrag: sum(ausgewaehlt, (a) => a.betragAngebot), angebotIds: ausgewaehlt.map((a) => a.id) };
+  }
+  if (gueltig.length === 0) return null;
+  const hoechstes = gueltig.reduce((max, a) => (a.betragAngebot > max.betragAngebot ? a : max));
+  return { betrag: hoechstes.betragAngebot, angebotIds: [hoechstes.id] };
+}
 const offen = (geplant, bezahlt) => Math.max(geplant - bezahlt, 0);
 
 const EMPTY_GEWERK = Object.freeze({
   budget: 0, geplant: 0, bezahlt: 0, offen: 0, summeRechnungen: 0,
-  abgerechnet: false, zahlstatus: null, anzahlAngebote: 0, anzahlRechnungen: 0,
+  abgerechnet: false, quelle: 'budget', planAngebotIds: [], zahlstatus: null, anzahlAngebote: 0, anzahlRechnungen: 0,
   einheitIds: [], proEinheit: {},
 });
 const EMPTY_EINHEIT = Object.freeze({ budget: 0, geplant: 0, bezahlt: 0, offen: 0, gewerke: [] });
@@ -70,7 +86,10 @@ export function buildModel(data) {
     const summeRechnungen = sum(rs, (r) => r.betrag);
     const bezahlt = sum(rs, (r) => (r.bezahlt ? r.betrag : 0));
     const abgerechnet = g.status === 'fertig' && summeRechnungen > 0;
-    const geplant = abgerechnet ? summeRechnungen : (g.geplantBudget || 0);
+    const planAngebot = abgerechnet ? null : getPlanAngebot(angeboteByGewerk.get(g.id) || []);
+    // Where "Geplant" comes from: 'rechnungen' | 'angebot' | 'budget'
+    const quelle = abgerechnet ? 'rechnungen' : planAngebot ? 'angebot' : 'budget';
+    const geplant = abgerechnet ? summeRechnungen : planAngebot ? planAngebot.betrag : (g.geplantBudget || 0);
     const anteile = getAnteile(g);
 
     const proEinheit = {};
@@ -92,6 +111,8 @@ export function buildModel(data) {
       offen: offen(geplant, bezahlt),
       summeRechnungen,
       abgerechnet,
+      quelle,
+      planAngebotIds: planAngebot ? planAngebot.angebotIds : [],
       // Only meaningful once the trade is finished: all invoices paid or not.
       zahlstatus: g.status !== 'fertig' ? null : (rs.length > 0 && rs.every((r) => r.bezahlt) ? 'bezahlt' : 'offen'),
       anzahlAngebote: (angeboteByGewerk.get(g.id) || []).length,

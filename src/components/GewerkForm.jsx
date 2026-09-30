@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { equalSplit } from '../domain/migrate';
 import { GEWERK_STATUSES, statusLabel } from '../domain/constants';
 
-export default function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel, autoSave = false }) {
+export default function GewerkForm({ initial, einheiten, kategorien, onSave, onCancel, autoSave = false, budgetHinweis = null }) {
   const kats = (kategorien && kategorien.length > 0) ? kategorien : ['Sonstiges'];
   const [form, setForm] = useState(
     initial || {
@@ -77,6 +77,7 @@ export default function GewerkForm({ initial, einheiten, kategorien, onSave, onC
           onChange={(e) => set('geplantBudget', e.target.value)}
           onBlur={() => autoSave && save()}
         />
+        {budgetHinweis && <span className="form-hint">{budgetHinweis}</span>}
       </div>
       {einheiten && einheiten.length > 0 && (
         <div className="form-row">

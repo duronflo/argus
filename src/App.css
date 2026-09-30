@@ -1581,3 +1581,7 @@ body {
   .table--stack .cell-empty { display: none; }
   .gewerke-list-wrap { border: 0; background: none; }
 }
+
+/* Small second line in a table cell (e.g. where a planned amount comes from) */
+.cell-sub { font-size: 11px; font-weight: 400; color: #9ca3af; }
+.plan-hinweis { margin: 8px 0 0; }

@@ -5,6 +5,15 @@
 
 export const CHANGELOG = [
   {
+    version: '0.2.1',
+    datum: '2026-09-30',
+    titel: 'Angebot ersetzt Planung',
+    punkte: [
+      'Liegt für ein Gewerk ein Angebot vor, ersetzt dessen Betrag das geplante Budget – ausgewählte Angebote vor offenen, abgelehnte zählen nicht.',
+      'Gewerk-Liste und Gewerk-Fenster zeigen, ob „Geplant“ aus Budget, Angebot oder Rechnungen stammt.',
+    ],
+  },
+  {
     version: '0.2.0',
     datum: '2026-09-27',
     titel: 'Vereinfachung: eine Rechnungsliste',

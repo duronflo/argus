@@ -17,7 +17,7 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 
 - **Passwortschutz** – Cookie-basiert (100 Tage gültig), Initial-Passwort `0000`, änderbar über „Projekt bearbeiten" (Pflichtfeld)
 - **Erweiterbare Kategorien** – Kategorien (Dachdecker, Elektro, …) im Projekt-Dialog verwaltbar (hinzufügen / entfernen)
-- **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit; bei fertigen Gewerken ersetzt die Rechnungssumme den ursprünglichen Planwert
+- **Budgetübersicht** – Gesamtbudget, geplante und bezahlte Kosten im direkten Vergleich, auch je Einheit; ein vorliegendes Angebot ersetzt den Planwert, bei fertigen Gewerken die Rechnungssumme
 - **Kostenverteilung je Einheit** – Pro Gewerk Aufteilung auf Einheiten per Schieberegler + Textbox (%), initial gleichmäßig
 - **Einheiten-Analyse** – Drei Budgetdiagramme und nach geplantem Betrag sortierte Gewerke mit farbigen Statusbalken je Einheit (blau geplant, grün fertig)
 
@@ -52,7 +52,7 @@ Eine einfache React Web App zur Verwaltung von Bau- und Renovierungsangeboten so
 | `src/components/` | Oberfläche |
 | `src/version.js` | Versionsnummer und Versionshistorie |
 
-**Berechnungsregeln** (`src/domain/model.js`): *Bezahlt* = Summe der bezahlten Rechnungen. *Geplant* = Budget des Gewerks; bei fertigen Gewerken mit Rechnungen die Rechnungssumme. Einheiten erhalten Budget und Rechnungen ohne Einheit nach dem Verteilungsschlüssel des Gewerks, Rechnungen mit Einheit zu 100 %.
+**Berechnungsregeln** (`src/domain/model.js`): *Bezahlt* = Summe der bezahlten Rechnungen. *Geplant* = bei fertigen Gewerken mit Rechnungen die Rechnungssumme; sonst, wenn ein Angebot vorliegt, dessen Betrag (ausgewählte Angebote als Summe vor offenen – davon das höchste; abgelehnte zählen nicht); sonst das Budget des Gewerks. Einheiten erhalten Budget und Rechnungen ohne Einheit nach dem Verteilungsschlüssel des Gewerks, Rechnungen mit Einheit zu 100 %.
 
 Beim Wechsel auf ein neues Datenmodell legt der Server vorher eine Kopie des alten Stands in der Tabelle `project_backups` an.
 
